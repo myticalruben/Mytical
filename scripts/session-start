@@ -21,5 +21,8 @@ waybar="${XDG_CONFIG_HOME:-$HOME/.config}/waybar/scripts/launch-waybar.sh"
 
 dunst >/dev/null 2>&1 &
 nm-applet >/dev/null 2>&1 &
+# Agente de autenticacion polkit (GNOME). Solo si esta instalado.
+polkit_agent=/usr/lib/policykit-1-gnome/polkit-gnome-authentication-agent-1
+[ -x "$polkit_agent" ] && "$polkit_agent" >/dev/null 2>&1 &
 wl-paste --type text --watch cliphist store >/dev/null 2>&1 &
 wl-paste --type image --watch cliphist store >/dev/null 2>&1 &
