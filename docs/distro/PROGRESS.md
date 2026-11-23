@@ -146,3 +146,10 @@
   `mytical-session` solo escribía `Current=mytical`, no instalaba el tema.
 - Añadido `mytical-sddm-theme` con tema, fondo CC0 y dependencias QML.
 - `mytical-session` ahora depende del tema; `install-overlay` lo instala primero.
+
+## 2026-11-23 — Fondo SDDM
+
+- `mytical-sddm-theme` ahora instala `mytical-sddm-sync`, `palette.py` y un
+  path unit para seguir el wallpaper de Hyprland.
+- El postinst sincroniza el fondo actual del usuario y deja de mostrar el
+  gradiente CC0 por defecto.

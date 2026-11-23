@@ -20,4 +20,7 @@ theme_deb="$root/distro/build/mytical-sddm-theme_0.1.0-1~resolute1_all.deb"
 theme_list=$(dpkg-deb -c "$theme_deb")
 printf '%s\n' "$theme_list" | grep -q usr/share/sddm/themes/mytical/Main.qml
 printf '%s\n' "$theme_list" | grep -q usr/share/sddm/themes/mytical/Backgrounds/wallpaper
+printf '%s\n' "$theme_list" | grep -q usr/bin/mytical-sddm-sync
+printf '%s\n' "$theme_list" | grep -q usr/share/sddm/themes/mytical/palette.py
+[ -x "$root/distro/debian/mytical-sddm-theme/DEBIAN/postinst" ]
 echo "OK: paquete mytical-sddm-theme"

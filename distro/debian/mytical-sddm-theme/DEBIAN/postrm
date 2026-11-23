@@ -1,0 +1,8 @@
+#!/bin/sh
+set -eu
+if [ -d /run/systemd/system ]; then
+    systemctl disable --now mytical-sddm-sync.path >/dev/null 2>&1 || true
+    rm -f /etc/systemd/system/mytical-sddm-sync.service /etc/systemd/system/mytical-sddm-sync.path
+    systemctl daemon-reload >/dev/null 2>&1 || true
+fi
+exit 0
