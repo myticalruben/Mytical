@@ -1,0 +1,40 @@
+-----BEGIN PGP SIGNED MESSAGE-----
+Hash: SHA256
+
+Architectures: amd64
+Codename: mytical
+Components: main
+Date: Mon, 23 Nov 2026 23:42:48 +0000
+Description: Repositorio APT local de Mytical
+Label: Mytical
+Origin: Mytical
+Suite: mytical
+MD5Sum:
+ 11b42765f09301f113df5458c3fc3ed2             3872 main/binary-amd64/Packages
+ 5b73ed39a39b57e05caa2304d505e564             1772 main/binary-amd64/Packages.gz
+SHA1:
+ 0bc5c39dbb548e1558e35582e937edf3965f32a9             3872 main/binary-amd64/Packages
+ ffad403012f16a5642006dccbaaf3b16be32b180             1772 main/binary-amd64/Packages.gz
+SHA256:
+ fc8754deee99cc5188f74681fe21431147c822a137614710521da6b50943d324             3872 main/binary-amd64/Packages
+ bd12d06e00bd3dd5824ae696f26299268d769ec96f0a7bc60eec24a3f3244ac7             1772 main/binary-amd64/Packages.gz
+SHA512:
+ 27a35237dc1bacf6324949dc5d387ddcceb5a5dd2f2f2908eea876303cd7f4a62595d469a8f65146396d83bf440514c64e3023c533db8b23d5680c2126bc5fb1             3872 main/binary-amd64/Packages
+ 89779928e3f27de3861e190035169994c71a2ade0d681c854dd3718873760390658b06192699fd7f5a383d3ae56851d3ec45d1addf293fce378098ed0640718f             1772 main/binary-amd64/Packages.gz
+
+-----BEGIN PGP SIGNATURE-----
+
+iQIzBAEBCAAdFiEE4rkeh3wSCrwEQmhcF94vEQYsveoFAmsEz3gACgkQF94vEQYs
+veryhRAArf7quRW/EyDL8IX6iDNeb0g7yaoReGExetCWsepr8Hiymxfgx79b74Bl
+3bnEy2s6Gm65Yu+KGrcpaHBggOYommtxnUnGQi7gk1fKBkS8GOxGYoXyktRUyMBK
+3WNm/LkSYiajMI2yy8AfAJj5IVA9stsRIlgl3UPndfF+woFa2kvEQuw9AZkg9qoj
+y5yqCuzjrNcOEZ/tRSJp+A6Z1q6GOeoRp3qn5ufmASVZ7Osc3BqN35upIlui/4RN
+ZUms5rpEsllRutEzQm6f3qIqW2NlfRC4gzhzyu73UxLFjbgw5UlY1pGUN13RC2fG
+u2EcTMzMrorQLM0N+mZP7TV2oJhCc9h1aH8Dpq5I3I/qhkT4vfWngnjs4wKQDNr6
+V8JhxzmfVusGcr1XsySaiw7lecHc7y9UFAdWtwsG8DLPaeTLvkDVKMMdxvdV+4sZ
+WgZEPVmLC6UFNBs/5lujezq84iPiNefgiAtBzp3ZJwzJQsTPPjbA5o/2JVVWaEKS
+2pr6fvcp0uSeHPrRyqGtpmr5vTFbfskEioh2/uSRwkPpqNsyYCG93Dn6A29DykuS
+oa6a+2dds7WkQYEJjwGYnlLaFEhfkn3s7eeIx/EC2J0pwev0cr8n5XaEsAnX8iQ4
+JSAcJthRtBIjgzz9Df43/Ve1vyV0Y4gDwVSCxz3nmBIEuITpDs0=
+=eC+E
+-----END PGP SIGNATURE-----

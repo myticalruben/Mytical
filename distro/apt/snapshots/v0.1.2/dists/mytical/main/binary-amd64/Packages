@@ -1,0 +1,73 @@
+Package: mytical-desktop
+Architecture: all
+Version: 0.1.2-1~resolute1
+Priority: optional
+Section: metapackages
+Maintainer: Mytical <dev@mytical.invalid>
+Depends: mytical-session, mytical-welcome, sddm, xserver-xorg, xwayland, network-manager, network-manager-gnome, pipewire, pipewire-pulse, wireplumber, xdg-desktop-portal-hyprland, xdg-desktop-portal-gtk, gnome-keyring, libpam-gnome-keyring, gvfs, gvfs-backends, gvfs-fuse, polkitd, policykit-1-gnome, thunar, zsh, direnv, fonts-jetbrains-mono
+Filename: pool/main/m/mytical-desktop/mytical-desktop_0.1.2-1~resolute1_all.deb
+Size: 1144
+MD5sum: 304459eed90804db0f3f5319711ae8f8
+SHA1: 5b0f04325cd3a0b10eef5bc10b4a6eaf2f9054f6
+SHA256: 8736e995d135ceaed7e807b62460c697146f74e23df668b3b683b4640f1e9a8c
+SHA512: 7e8d13f97f7d06efd198879349c68823505edcd922395ec5132ff994e153130b49cd55f85e2a6bf0593ac75f6a7b8c2a71faddc527943c247e02fab28cbeaca7
+Description: Mytical desktop system metapackage
+ Pulls the APT-owned base of the Mytical desktop: login, ports, audio,
+ network, keyring, file manager and fonts. The Hyprland/Kitty layer is Nix
+ in the Preview and a separate APT package in the ISO.
+
+Package: mytical-sddm-theme
+Architecture: all
+Version: 0.1.2-1~resolute1
+Priority: optional
+Section: x11
+Maintainer: Mytical <dev@mytical.invalid>
+Depends: sddm, qml6-module-qtquick, qml6-module-qtquick-controls, qml6-module-qtquick-layouts, qml6-module-qtquick-effects, qml6-module-qtmultimedia, qml6-module-qtquick-templates, qml6-module-qtquick-window, fonts-open-sans
+Filename: pool/main/m/mytical-sddm-theme/mytical-sddm-theme_0.1.2-1~resolute1_all.deb
+Size: 2164400
+MD5sum: 3608b17685848575d7518c609f3e7cb9
+SHA1: bbc916c62681ec3ea01182381d0d177009cc1dca
+SHA256: 867cf69e45bb955c4f59470819f8eaa5228ab490acaffe60705304392806e17b
+SHA512: 6d039cef6e05c5e922f876e73bc5b389265454580d79c8b08e885b34fc22750ad795f90f5e6f6cebc5541877e07270008201283a306e90cdcfc6118c44508a21
+Description: Mytical SDDM theme
+ Astronaut-derived SDDM theme for Mytical, with Mytical colors, a default
+ CC0 background and the QML dependencies SDDM needs. The theme is installed
+ under /usr/share/sddm/themes/mytical and owned by root.
+
+Package: mytical-session
+Architecture: all
+Version: 0.1.2-1~resolute1
+Priority: optional
+Section: x11
+Maintainer: Mytical <dev@mytical.invalid>
+Depends: mytical-sddm-theme, sddm, xserver-xorg, xdg-desktop-portal-hyprland, xdg-desktop-portal-gtk, gnome-keyring, gvfs, polkitd
+Conflicts: ubuntu-session, gdm3
+Filename: pool/main/m/mytical-session/mytical-session_0.1.2-1~resolute1_all.deb
+Size: 2304
+MD5sum: 6d7fe951c372944bf715eafc17c2d880
+SHA1: 7f0ecf9ef4876b75c62504f202b7e88eff9c0544
+SHA256: f99139762b00fa791016e3bc9fe2dcbbec4cd7fef84ae3e431144b01c79dc538
+SHA512: e053f82c456ca002c18ab6b418ed59538547609dd6277e2923183b86dc9e4f8b7f0522a57317704b3aaefa4e6764f914394de3762d93fdf470dddab5adbe778e
+Description: Mytical Hyprland session entry and wrapper
+ Installs the single Mytical Wayland session, its /usr/bin wrapper and
+ SDDM's session/theme configuration. It does not ship a compositor: in the
+ Preview the wrapper finds Hyprland in the Nix profile; in the ISO it finds
+ the APT package.
+
+Package: mytical-welcome
+Architecture: all
+Version: 0.1.2-1~resolute1
+Priority: optional
+Section: misc
+Maintainer: Mytical <dev@mytical.invalid>
+Depends: python3
+Filename: pool/main/m/mytical-welcome/mytical-welcome_0.1.2-1~resolute1_all.deb
+Size: 2616
+MD5sum: 45622cc62fc8b15ed2eda751fc53e88f
+SHA1: 5b75e7615e90ad00ed202130869def21c5254d45
+SHA256: 918ea30379749f267c69dd7657683f383ac35684dd0f86d7b51d18e55afda6d1
+SHA512: 93d0fcd961bb854ced3790b7d894033b259b55bc09ada1d5dbf021b1cb005c5fff957a2b447c61362253d7a4478b37241136b25f8d318ee37453e33d95a2e17a
+Description: Mytical first-run guide
+ Small TUI that checks the Mytical stack, explains the APT/Nix split and
+ lets the user pick a wallpaper on first login. No root, no telemetry.
+
