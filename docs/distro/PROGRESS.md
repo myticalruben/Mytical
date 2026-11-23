@@ -172,3 +172,9 @@
 - `palette.py` acepta `--mode neon` y no lee wallpaper/paleta en ese modo.
 - Copias del paquete `mytical-sddm-theme` actualizadas.
 - 18 tests específicos y 30 tests totales en verde.
+
+## 2026-11-23 — Verificador de instalación limpia
+
+- `distro/tests/test_clean_install.sh`: solo lectura, 13 comprobaciones y
+  SKIP explícito fuera de Ubuntu 26.04.
+- `docs/distro/CLEAN-INSTALL.md` documenta requisitos, salida y remediación.
