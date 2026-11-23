@@ -22,6 +22,11 @@ waybar="${XDG_CONFIG_HOME:-$HOME/.config}/waybar/scripts/launch-waybar.sh"
 
 dunst >/dev/null 2>&1 &
 nm-applet >/dev/null 2>&1 &
+# Agente de autenticacion polkit (GNOME). Solo si esta instalado.
+polkit_agent=/usr/lib/policykit-1-gnome/polkit-gnome-authentication-agent-1
+[ -x "$polkit_agent" ] && "$polkit_agent" >/dev/null 2>&1 &
+# Demonio de ydotool: mueve el cursor desde el teclado (ver hypr/modules/mouse_keys.lua).
+command -v ydotoold >/dev/null 2>&1 && ydotoold >/dev/null 2>&1 &
 
 # Primer arranque: una sola vez, en Kitty. Si el usuario cierra sin completar,
 # el marcador no existe y se vuelve a ofrecer en el próximo login.
