@@ -291,7 +291,6 @@ in
   home.file.".local/bin/session-splash".source = link "scripts/session-splash";
   home.file.".local/bin/session-start".source = link "scripts/session-start";
   home.file.".local/bin/set-zsh-shell".source = link "scripts/set-zsh-shell";
-  home.file."Pictures/Wallpapers".source = link "Wallpapers";
 
   # ------------------------------------------------------------ packages ---
   # Everything the configs invoke, from Nix. One list: the closure is the same

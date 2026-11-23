@@ -252,3 +252,10 @@ proyectos que configuran; esta documentación está en español.
 El código propio de Mytical se distribuye bajo **GPL-3.0-or-later**. Ver
 `LICENSE`, `COPYRIGHT` y `THIRD_PARTY_NOTICES`. Los assets de terceros conservan
 sus licencias originales.
+
+## Wallpapers
+
+Los fondos personales viven en el repo privado
+[`mytical-wallpapers`](https://github.com/myticalruben/mytical-wallpapers), no
+en este repositorio. Instalalos con `./install.sh` de ese repo; la distro usa
+`~/Pictures/Wallpapers` y no necesita cambios de configuración.

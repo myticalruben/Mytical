@@ -29,7 +29,7 @@ if unknown:
     print(f"Opción desconocida: {unknown[0]} (prueba --help)", file=sys.stderr)
     raise SystemExit(2)
 
-from utils import ccf, home_ccf, summary, unlink, Type  # noqa: E402
+from utils import ccf, summary, unlink, Type  # noqa: E402
 
 print("Quitando los enlaces de estos dotfiles" if unlink
       else "Setting up Hyprland Dotfiles")
@@ -50,7 +50,6 @@ ccf("scripts/wallpaper", Type.BIN)
 ccf("scripts/session-start", Type.BIN)
 ccf("scripts/session-splash", Type.BIN)
 ccf("scripts/set-zsh-shell", Type.BIN)
-home_ccf("Wallpapers", "Pictures/Wallpapers")
 
 code = summary()
 

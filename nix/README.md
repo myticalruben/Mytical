@@ -268,7 +268,7 @@ tardó 64 s porque instaló el closure completo.
 
 Probada en las dos VM. En Arch, con el backend DRM de QEMU, Hyprland 0.56.2
 arrancó en `Virtual-1` (1280x800) con waybar, quickshell, kitty, dunst,
-nm-applet, cliphist y awww; el fondo se restauró desde `Wallpapers/01.png` y
+nm-applet, cliphist y awww; el fondo se restauró desde `~/Pictures/Wallpapers/01.png` y
 `grim` capturó la pantalla.
 
 En Ubuntu, tras añadirle una GPU virtio, también arrancó en `Virtual-1`

@@ -23,7 +23,7 @@ class SetupDryRunTest(unittest.TestCase):
             self.assertEqual(result.returncode, 0, result.stderr)
             for needle in (
                 "session-start", "session-splash", "set-zsh-shell",
-                "gtk-theme", "btop-theme", "Wallpapers",
+                "gtk-theme", "btop-theme",
             ):
                 self.assertIn(needle, result.stdout)
 
