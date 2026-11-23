@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.1.2 — Mytical V1.0 Preview (2026-11-23)
+
+- Añadido `/etc/pam.d/hyprlock` propio; evita el fallback a `su` y que PAM
+  rechace la contraseña por `@include` no soportado.
+- El paquete `mytical-session` instala esa configuración como conffile.
+
 ## 0.1.1 — Mytical V1.0 Preview (2026-11-23)
 
 - `mytical-session` usa `90-mytical.conf`, por encima de la configuración de

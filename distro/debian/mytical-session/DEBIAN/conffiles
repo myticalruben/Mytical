@@ -1,1 +1,2 @@
 /etc/sddm.conf.d/90-mytical.conf
+/etc/pam.d/hyprlock
