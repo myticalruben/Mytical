@@ -9,6 +9,7 @@ require("modules.decoration")
 require("modules.animations")
 require("modules.window_rules")
 require("modules.keysbindings")
+require("modules.mouse_keys")
 require("modules.workspaces_rules")
 
 -- Machine-specific overrides. Not versioned, optional: pcall keeps the config

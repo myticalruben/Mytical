@@ -28,6 +28,8 @@ pavucontrol
 polkit-kde-agent-1
 # Agente polkit de GNOME: lo lanza scripts/session-start al arrancar Hyprland.
 policykit-1-gnome
+# Mover el raton con el teclado (hypr/modules/mouse_keys.lua).
+ydotool
 # Keyring de secretos (Secret Service). libpam-gnome-keyring desbloquea el
 # keyring "login" al entrar en SDDM; seahorse es la GUI para gestionarlo.
 gnome-keyring
