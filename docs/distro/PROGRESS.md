@@ -191,3 +191,12 @@
   retención y rotación.
 - Test con clave efímera y `gpgv`: OK; `apt-get update` aislado resolvió
   `mytical-session` desde la snapshot.
+
+## 2026-11-23 — Historia y clave de release
+
+- Historia reescrita para quitar `graphify-out` de todos los commits; los
+  wallpapers se conservan. El backup previo está en
+  `/opt/deepseek-harness/backups/`.
+- Generada clave GPG RSA 4096 de release:
+  `E2B91E877C120ABC0442685C17DE2F11062CBDEA`.
+- Clave pública en `distro/apt/mytical-release.{asc,gpg}`.
