@@ -1,26 +1,34 @@
 #!/usr/bin/env python3
-"""Pinta el tema SDDM con la misma paleta neon que Waybar.
+"""Pinta el tema SDDM con la paleta neon de Waybar.
 
-Recibe la paleta generada por waybar/scripts/palette.py y reemplaza solo las
-claves de color del archivo de configuracion del tema, sin tocar el layout.
+En modo ``adaptive`` (por defecto) recibe la paleta generada por
+waybar/scripts/palette.py y reemplaza solo las claves de color del archivo de
+configuracion del tema, sin tocar el layout. En modo ``neon`` usa los colores
+de marca fijos y no lee la paleta ni, por tanto, el wallpaper.
 """
 
+import argparse
+import os
 import re
 import sys
 
-DEFAULTS = {
+# Copia de FALLBACK en waybar/scripts/palette.py. No se importa porque el tema
+# se instala solo en /usr/share/sddm/themes/mytical.
+BRAND = {
     "neon_solid": "#05080f",
     "neon_accent1": "#00f0ff",
     "neon_accent2": "#ff2bd6",
     "neon_text": "#d9fbff",
     "neon_power": "#ff4d6d",
 }
+MODES = ("adaptive", "neon")
 
 
 def parse(path):
-    colors = dict(DEFAULTS)
+    colors = dict(BRAND)
     try:
-        text = open(path, encoding="utf-8").read()
+        with open(path, encoding="utf-8") as fh:
+            text = fh.read()
     except OSError:
         return colors
     for name, value in re.findall(r"@define-color\s+(\w+)\s+(#[0-9a-fA-F]{6})\s*;", text):
@@ -49,25 +57,19 @@ def darken(value, t):
     return hexc(mix(rgb(value), (0, 0, 0), t))
 
 
-def main():
-    palette = sys.argv[1] if len(sys.argv) > 1 else ""
-    config_path = sys.argv[2] if len(sys.argv) > 2 else ""
-    if not config_path:
-        raise SystemExit("uso: palette.py PALETA CONFIG")
-
-    c = parse(palette)
-    solid = c["neon_solid"]
-    accent1 = c["neon_accent1"]
-    accent2 = c["neon_accent2"]
-    text = lighten(c["neon_text"], 0.28)
-    power = c["neon_power"]
+def build(colors):
+    solid = colors["neon_solid"]
+    accent1 = colors["neon_accent1"]
+    accent2 = colors["neon_accent2"]
+    text = lighten(colors["neon_text"], 0.28)
+    power = colors["neon_power"]
 
     field = lighten(solid, 0.10)
     field_bg = mix(rgb(solid), rgb(accent1), 0.06)
     highlighted = mix(rgb(solid), rgb(accent1), 0.22)
     button = mix(rgb(solid), rgb(accent2), 0.22)
 
-    values = {
+    return {
         "HeaderTextColor": text,
         "DateTextColor": accent1,
         "TimeTextColor": text,
@@ -100,8 +102,11 @@ def main():
         "HoverVirtualKeyboardButtonTextColor": accent2,
     }
 
+
+def apply(config_path, values):
     try:
-        lines = open(config_path, encoding="utf-8").read().splitlines()
+        with open(config_path, encoding="utf-8") as fh:
+            lines = fh.read().splitlines()
     except OSError:
         raise SystemExit("no se puede leer %s" % config_path)
 
@@ -121,6 +126,27 @@ def main():
     missing = sorted(set(values) - seen)
     if missing:
         print("no encontre claves:", ", ".join(missing), file=sys.stderr)
+
+
+def main():
+    parser = argparse.ArgumentParser(
+        description="Aplica una paleta neon al tema SDDM de Mytical.",
+        epilog="adaptive (por defecto) sigue la paleta de Waybar; neon usa "
+               "los colores de marca sin leer el wallpaper.",
+    )
+    parser.add_argument("--mode", metavar="MODO", help="adaptive (por defecto) o neon")
+    parser.add_argument("palette", nargs="?", default="", metavar="PALETA")
+    parser.add_argument("config", nargs="?", default="", metavar="CONFIG")
+    args = parser.parse_args()
+
+    mode = args.mode or os.environ.get("MYTICAL_SDDM_MODE", "").strip() or "adaptive"
+    if mode not in MODES:
+        parser.error("modo invalido: %s (usa adaptive o neon)" % mode)
+    if not args.config:
+        parser.error("uso: palette.py [--mode adaptive|neon] PALETA CONFIG")
+
+    colors = dict(BRAND) if mode == "neon" else parse(args.palette)
+    apply(args.config, build(colors))
 
 
 if __name__ == "__main__":

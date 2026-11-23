@@ -1,9 +1,12 @@
 #!/usr/bin/env bash
-# Copia el wallpaper actual del usuario al tema SDDM. Lo dispara un
-# systemd.path cuando cambia el estado de Hyprland.
+# Copia el wallpaper actual del usuario al tema SDDM y aplica su paleta. Lo
+# dispara un systemd.path cuando cambia el estado de Hyprland.
 set -euo pipefail
 
+conf="${MYTICAL_SDDM_CONF:-/etc/mytical/sddm.conf}"
+theme="${MYTICAL_SDDM_THEME:-/usr/share/sddm/themes/mytical}"
 user="${MYTICAL_SDDM_USER:-}"
+mode_arg=""
 while [ "$#" -gt 0 ]; do
     case "$1" in
         --user)
@@ -11,8 +14,17 @@ while [ "$#" -gt 0 ]; do
             user=$2
             shift 2
             ;;
+        --mode)
+            [ "$#" -ge 2 ] || { echo "falta el modo" >&2; exit 2; }
+            mode_arg=$2
+            shift 2
+            ;;
         --help)
-            echo "uso: mytical-sddm-sync [--user USUARIO]"
+            echo "uso: mytical-sddm-sync [--user USUARIO] [--mode adaptive|neon]"
+            echo
+            echo "adaptive (por defecto) sigue la paleta de Waybar; neon fija"
+            echo "los colores de marca. --mode tiene prioridad sobre"
+            echo "MYTICAL_SDDM_MODE y sobre MODE= en /etc/mytical/sddm.conf."
             exit 0
             ;;
         *)
@@ -21,9 +33,31 @@ while [ "$#" -gt 0 ]; do
             ;;
     esac
 done
+
+# MODE=neon en /etc/mytical/sddm.conf; admite comentarios y comillas.
+config_mode() {
+    local value
+    [ -r "$conf" ] || return 0
+    value=$(sed -n 's/^[[:space:]]*MODE[[:space:]]*=[[:space:]]*//p' "$conf" | tail -n 1)
+    value=${value%%[[:space:]#]*}
+    value=${value#\"}
+    value=${value%\"}
+    value=${value#\'}
+    value=${value%\'}
+    printf '%s' "$value"
+}
+
+mode=${mode_arg:-${MYTICAL_SDDM_MODE:-}}
+[ -n "$mode" ] || mode=$(config_mode)
+mode=${mode:-adaptive}
+case "$mode" in
+    adaptive|neon) ;;
+    *) echo "modo invalido: $mode (usa adaptive o neon)" >&2; exit 2 ;;
+esac
+
 [ -n "$user" ] || user="${SUDO_USER:-}"
 if [ -z "$user" ] || [ "$user" = root ]; then
-    echo "uso: sudo mytical-sddm-sync --user USUARIO" >&2
+    echo "uso: sudo mytical-sddm-sync --user USUARIO [--mode adaptive|neon]" >&2
     exit 2
 fi
 
@@ -38,7 +72,6 @@ if [ -z "$img" ] || [ ! -r "$img" ]; then
 fi
 [ -r "$img" ] || { echo "no hay wallpaper legible para $user" >&2; exit 1; }
 
-theme=/usr/share/sddm/themes/mytical
 [ -d "$theme" ] || { echo "falta el tema $theme" >&2; exit 1; }
 install -d -m 755 "$theme/Backgrounds"
 # Sin extension: Qt detecta el formato por contenido. El tema apunta siempre
@@ -48,17 +81,18 @@ chmod 644 "$theme/Backgrounds/wallpaper"
 
 # La cache de waybar puede ser de un fondo anterior si este sync corre antes
 # que scripts/wallpaper. Regenerarla como el usuario evita que SDDM use una
-# paleta vieja.
-refresh_palette() {
-    local theme_sh="$home/.config/waybar/scripts/theme.sh"
-    [ -x "$theme_sh" ] || return 0
-    command -v runuser >/dev/null 2>&1 || return 0
-    runuser -u "$user" -- env         HOME="$home"         XDG_CACHE_HOME="$home/.cache"         XDG_CONFIG_HOME="$home/.config"         XDG_STATE_HOME="$home/.local/state"         PATH="$home/.nix-profile/bin:/usr/local/bin:/usr/bin:/bin"         "$theme_sh" "$img" >/dev/null 2>&1 || true
-}
-refresh_palette
+# paleta vieja. En modo neon no hace falta: palette.py no lee esa cache.
+if [ "$mode" = adaptive ]; then
+    refresh_palette() {
+        local theme_sh="$home/.config/waybar/scripts/theme.sh"
+        [ -x "$theme_sh" ] || return 0
+        command -v runuser >/dev/null 2>&1 || return 0
+        runuser -u "$user" -- env         HOME="$home"         XDG_CACHE_HOME="$home/.cache"         XDG_CONFIG_HOME="$home/.config"         XDG_STATE_HOME="$home/.local/state"         PATH="$home/.nix-profile/bin:/usr/local/bin:/usr/bin:/bin"         "$theme_sh" "$img" >/dev/null 2>&1 || true
+    }
+    refresh_palette
+fi
 
-# Misma paleta que Waybar: actualiza las claves de color del tema.
 palette="$home/.cache/waybar/palette.css"
 if [ -r "$theme/palette.py" ]; then
-    python3 "$theme/palette.py" "$palette" "$theme/Themes/mytical.conf"
+    python3 "$theme/palette.py" --mode "$mode" "$palette" "$theme/Themes/mytical.conf"
 fi

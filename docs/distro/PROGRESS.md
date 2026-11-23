@@ -165,3 +165,10 @@
 
 - Creado `docs/distro/FUTURE-FEATURES.md`; anotada la paleta neón fija de SDDM
   como P1 y el selector adaptive/fijo.
+
+## 2026-11-23 — Paleta neón fija SDDM
+
+- `mytical-sddm-sync --mode adaptive|neon`; `adaptive` sigue siendo el default.
+- `palette.py` acepta `--mode neon` y no lee wallpaper/paleta en ese modo.
+- Copias del paquete `mytical-sddm-theme` actualizadas.
+- 18 tests específicos y 30 tests totales en verde.
