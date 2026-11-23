@@ -1,0 +1,13 @@
+# Avisos de terceros de Mytical
+
+- Tema SDDM derivado de sddm-astronaut-theme, GPL-3.0-or-later, autor keyitdev.
+  Se conserva su LICENSE y se distribuye la fuente en este repositorio.
+- Tipografía Audiowide, SIL Open Font License 1.1; ver
+  `ubuntu/plymouth/fonts/OFL.txt`.
+- Animación de Plymouth propia; los throbbers fueron regenerados y ya no son
+  copias de CachyOS.
+- Iconos de wlogout propios; los wallpapers personales no se distribuyen.
+- Ubuntu es una marca de Canonical. Mytical se declara basada en Ubuntu, no
+  afiliada ni oficial.
+- El código propio de Mytical se distribuye bajo GPL-3.0-or-later; ver LICENSE
+  y COPYRIGHT.

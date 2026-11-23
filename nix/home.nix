@@ -240,6 +240,9 @@ in
       name = "JetBrainsMono Nerd Font";
       size = 10;
     };
+    # Fijado explícitamente: stateVersion 24.11 conserva el comportamiento
+    # legacy de GTK4; evita el warning de Home Manager 26.05.
+    gtk4.theme = config.gtk.theme;
   };
 
   # direnv: instala el binario y engancha su hook en zsh.
@@ -278,6 +281,7 @@ in
     "wlogout".source = link "wlogout";
     "quickshell".source = link "quickshell";
     "gtk-theme".source = link "gtk";
+    "kitty".source = link "kitty";
     "btop/btop.conf".text = builtins.readFile ../btop/btop.conf;
     "btop-theme".source = link "btop";
   };
@@ -307,6 +311,7 @@ in
       jq
       imagemagick # magick/convert for quickshell thumbnails
       btop
+      hypridle
       awww # the fork the config calls; nixpkgs renamed swww to this
 
       # waybar, rofi y hyprlock piden "JetBrainsMono Nerd Font". El paquete de
@@ -322,14 +327,11 @@ in
           waybar
           rofi
           kitty
-          alacritty
           dunst
           wlogout
           quickshell
           pavucontrol
-          networkmanagerapplet # nm-applet
           brave
-          thunar
           hyprlock
         ]
       ))

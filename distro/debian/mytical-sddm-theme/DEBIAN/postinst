@@ -1,0 +1,43 @@
+#!/bin/sh
+# Sincroniza el fondo actual del primer usuario humano y deja un path unit
+# para que SDDM siga el wallpaper de Hyprland. No toca /home.
+set -eu
+
+[ -d /run/systemd/system ] || exit 0
+
+user="${SUDO_USER:-}"
+case "$user" in
+    ""|root)
+        user=$(getent passwd 1000 | cut -d: -f1 || true)
+        ;;
+esac
+
+if [ -n "${user:-}" ] && [ "$user" != root ]; then
+    home=$(getent passwd "$user" | cut -d: -f6)
+    if [ -n "$home" ]; then
+        cat > /etc/systemd/system/mytical-sddm-sync.service <<UNIT
+[Unit]
+Description=Mytical SDDM wallpaper sync
+
+[Service]
+Type=oneshot
+ExecStart=/usr/bin/mytical-sddm-sync --user ${user}
+UNIT
+        cat > /etc/systemd/system/mytical-sddm-sync.path <<UNIT
+[Unit]
+Description=Watch the Hyprland wallpaper for Mytical SDDM
+
+[Path]
+PathChanged=${home}/.local/state/hypr/wallpaper
+Unit=mytical-sddm-sync.service
+
+[Install]
+WantedBy=paths.target
+UNIT
+        systemctl daemon-reload >/dev/null 2>&1 || true
+        systemctl enable --now mytical-sddm-sync.path >/dev/null 2>&1 || true
+        /usr/bin/mytical-sddm-sync --user "$user" >/dev/null 2>&1 || true
+    fi
+fi
+
+exit 0
