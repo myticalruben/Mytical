@@ -5,9 +5,14 @@
 set -eu
 
 if [ -d /run/systemd/system ] && command -v systemctl >/dev/null 2>&1; then
-    if systemctl cat sddm.service >/dev/null 2>&1 &&
-       systemctl is-active --quiet sddm; then
-        systemctl restart sddm >/dev/null 2>&1 || true
+    if systemctl cat sddm.service >/dev/null 2>&1; then
+        systemctl enable sddm >/dev/null 2>&1 || true
+        if ! systemctl is-active --quiet sddm &&
+           ! systemctl is-active --quiet gdm3; then
+            systemctl start sddm >/dev/null 2>&1 || true
+        elif systemctl is-active --quiet sddm; then
+            systemctl restart sddm >/dev/null 2>&1 || true
+        fi
     fi
 fi
 

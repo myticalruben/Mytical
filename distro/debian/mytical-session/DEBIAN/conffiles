@@ -1,1 +1,1 @@
-/etc/sddm.conf.d/10-mytical.conf
+/etc/sddm.conf.d/90-mytical.conf

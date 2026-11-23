@@ -62,7 +62,7 @@ dpkg-deb -e "$session_deb" "$control_dir"
 
 wrapper="$rootfs/usr/bin/mytical-session"
 desktop="$rootfs/usr/share/wayland-sessions/mytical.desktop"
-sddm_conf="$rootfs/etc/sddm.conf.d/10-mytical.conf"
+sddm_conf="$rootfs/etc/sddm.conf.d/90-mytical.conf"
 conffiles="$control_dir/conffiles"
 
 # --- Contenido del paquete (dpkg-deb -c) ------------------------------------
@@ -70,7 +70,7 @@ listing="$(dpkg-deb -c "$session_deb")"
 for path in \
     ./usr/bin/mytical-session \
     ./usr/share/wayland-sessions/mytical.desktop \
-    ./etc/sddm.conf.d/10-mytical.conf; do
+    ./etc/sddm.conf.d/90-mytical.conf; do
     grep -qF -- " $path" <<<"$listing" ||
         fail "dpkg-deb -c no lista $path"
 done
@@ -115,8 +115,8 @@ expect_line "$desktop" 'TryExec=/usr/bin/mytical-session' "mytical.desktop TryEx
 expect_line "$desktop" 'DesktopNames=Hyprland' "mytical.desktop DesktopNames"
 
 # --- Conffile de SDDM -------------------------------------------------------
-[ -f "$sddm_conf" ] || fail "falta /etc/sddm.conf.d/10-mytical.conf"
-expect_line "$conffiles" '/etc/sddm.conf.d/10-mytical.conf' "conffiles"
+[ -f "$sddm_conf" ] || fail "falta /etc/sddm.conf.d/90-mytical.conf"
+expect_line "$conffiles" '/etc/sddm.conf.d/90-mytical.conf' "conffiles"
 grep -qxF 'SessionDir=/usr/share/wayland-sessions' "$sddm_conf" ||
     fail "el conffile de SDDM no apunta a /usr/share/wayland-sessions"
 
