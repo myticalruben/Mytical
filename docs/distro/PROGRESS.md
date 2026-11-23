@@ -183,3 +183,11 @@
 
 - El verificador se ejecutó en 10.0.0.154: 13 OK, 0 FALTA, exit 0.
 - SDDM, tema, fondo, sync, paquetes, welcome y Hyprland comprobados.
+
+## 2026-11-23 — Repo APT de producción
+
+- Añadido `production-sign.sh` para firmar snapshots inmutables con GnuPG.
+- `PRODUCTION.md` documenta clave offline, `InRelease`, pin 500, snapshots,
+  retención y rotación.
+- Test con clave efímera y `gpgv`: OK; `apt-get update` aislado resolvió
+  `mytical-session` desde la snapshot.
