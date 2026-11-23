@@ -10,7 +10,10 @@ if [ ! -s "$cache" ]; then
     "$here/theme.sh" >/dev/null 2>&1 || true
 fi
 
+config="${XDG_CONFIG_HOME:-$HOME/.config}/waybar/config.jsonc"
+[ -f "$config" ] || config="${XDG_CONFIG_HOME:-$HOME/.config}/waybar/config"
+
 if [ -s "$cache" ]; then
-    exec waybar -s "$cache"
+    exec waybar -c "$config" -s "$cache"
 fi
-exec waybar
+exec waybar -c "$config"

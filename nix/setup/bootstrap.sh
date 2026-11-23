@@ -124,16 +124,16 @@ done
 # ------------------------------------------------- entorno de la maquina ---
 
 ENVFILE="$HOME/.config/hyprland-session.env"
-if [ "$virt" = "oracle" ]; then
-  say "VirtualBox detectado: escribiendo $ENVFILE"
-  mkdir -p "$HOME/.config"
-  cat > "$ENVFILE" <<'ENV'
-# Escrito por nix/setup/bootstrap.sh para una VM de VirtualBox.
+case "$virt" in
+  oracle|kvm|qemu)
+    say "VM detectada ($virt): escribiendo $ENVFILE"
+    mkdir -p "$HOME/.config"
+    cat > "$ENVFILE" <<'ENV'
+# Escrito por nix/setup/bootstrap.sh para una VM (VirtualBox/QEMU/KVM).
 #
-# El controlador VMSVGA no ofrece una ruta de render por hardware que Hyprland
-# pueda usar, asi que se le pide a Mesa que rasterice por software. Va lento,
-# pero arranca; y lo que se prueba en una VM es que la configuracion levanta,
-# no cuanto rinde.
+# La GPU virtual no ofrece una ruta de render por hardware que Hyprland pueda
+# usar, asi que se le pide a Mesa que rasterice por software. Va lento, pero
+# arranca; lo que se prueba en una VM es que la configuracion levanta.
 export LIBGL_ALWAYS_SOFTWARE=1
 export WLR_RENDERER_ALLOW_SOFTWARE=1
 
@@ -141,12 +141,15 @@ export WLR_RENDERER_ALLOW_SOFTWARE=1
 # arranca pero te quedas sin puntero visible.
 export WLR_NO_HARDWARE_CURSORS=1
 ENV
-elif [ -f "$ENVFILE" ] && grep -q LIBGL_ALWAYS_SOFTWARE "$ENVFILE"; then
-  # Heredado de una prueba en VM. En hardware real solo sirve para ir lento.
-  warn "$ENVFILE fuerza el render por software y esto no es una VM."
-  warn "renombrado a $ENVFILE.vm-backup"
-  mv "$ENVFILE" "$ENVFILE.vm-backup"
-fi
+    ;;
+  *)
+    if [ -f "$ENVFILE" ] && grep -q LIBGL_ALWAYS_SOFTWARE "$ENVFILE"; then
+      warn "$ENVFILE fuerza el render por software y esto no es una VM."
+      warn "renombrado a $ENVFILE.vm-backup"
+      mv "$ENVFILE" "$ENVFILE.vm-backup"
+    fi
+    ;;
+esac
 
 # -------------------------------------------------------------- activar ---
 
@@ -164,7 +167,13 @@ else
 fi
 
 say "Poniendo zsh como shell por defecto"
-"$HOME/.nix-profile/bin/set-zsh-shell"
+if [ -x "$HOME/.nix-profile/bin/set-zsh-shell" ]; then
+    "$HOME/.nix-profile/bin/set-zsh-shell"
+elif [ -x "$HOME/.local/bin/set-zsh-shell" ]; then
+    "$HOME/.local/bin/set-zsh-shell"
+else
+    warn "no encontré set-zsh-shell; el shell queda como está"
+fi
 
 # ----------------------------------------------------------- resultado ---
 
