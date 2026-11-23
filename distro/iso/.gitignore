@@ -1,0 +1,3 @@
+# Scratch del remaster: ISO extraida, rootfs y salida.
+# No se versiona nada de aqui; `make clean` borra solo este directorio.
+/work/

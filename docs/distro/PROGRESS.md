@@ -206,3 +206,11 @@
 - GitHub: `myticalruben/Mytical`.
 - Actualizados remote, README, bootstrap y enlaces de documentación.
 - La ruta local de trabajo sigue siendo `~/.dotfiles` por compatibilidad.
+
+## 2026-11-23 — Esqueleto ISO V1.1
+
+- Añadido `distro/iso/` con Makefile, remaster.sh, lista APT, Calamares mínimo,
+  tests y documentación.
+- `make -C distro/iso test`: 61 comprobaciones, 0 fallos.
+- Build real bloqueado a propósito hasta implementar chroot APT, branding,
+  metadatos casper y módulos Calamares.

@@ -1,0 +1,25 @@
+---
+# Branding minimo de Calamares para Mytical.
+#
+# Sin imagenes ni slideshow a proposito: los assets de marca (logo, icono,
+# bienvenida y show.qml) estan bloqueados por licencias y por el manifiesto
+# de assets. Ver docs/distro/ASSET-LICENSES.md (P0-03 y P0-06) y
+# docs/distro/ISO.md (B3).
+#
+# TODO(assets): cuando el arte este aprobado, anadir las claves `images:` y
+# `slideshow:` apuntando a archivos con licencia y a su aviso legal.
+
+componentName: mytical
+
+strings:
+  productName: Mytical
+  shortProductName: Mytical
+  version: "1.1"
+  shortVersion: "1.1"
+  versionedName: Mytical 1.1
+  shortVersionedName: Mytical 1.1
+  bootloaderEntryName: Mytical
+  productUrl: "https://github.com/myticalruben/Mytical"
+  supportUrl: "https://github.com/myticalruben/Mytical/issues"
+  releaseNotesUrl: "https://github.com/myticalruben/Mytical/releases"
+  knownIssuesUrl: "https://github.com/myticalruben/Mytical/issues"

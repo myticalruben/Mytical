@@ -1,0 +1,72 @@
+# Mytical V1.1 - paquetes APT base del rootfs de la ISO.
+#
+# Una entrada por linea. Las lineas que empiezan por '#' se ignoran.
+# La instalacion se hace dentro del chroot del remaster (ver remaster.sh);
+# no se instala nada en el host.
+#
+# Reglas:
+#   - Sin GNOME Shell, GDM ni ubuntu-session: la unica sesion es mytical.
+#   - Sin Nix en la imagen: Nix es opcional y se instala despues.
+#   - Los paquetes mytical-* salen del repo local (--repo).
+#
+# Casper y Calamares se declaran aqui para que el build falle de forma
+# explicita si el archive de Ubuntu 26.04 no los trae.
+
+# Live e instalador
+casper
+calamares
+
+# Arranque grafico y sesion
+sddm
+xserver-xorg
+xwayland
+mytical-session
+mytical-sddm-theme
+mytical-desktop
+mytical-welcome
+
+# Escritorio (propiedad de APT en la ISO, ver ADR 0002)
+hyprland
+waybar
+dunst
+kitty
+wlogout
+rofi
+hyprlock
+hypridle
+cliphist
+grim
+slurp
+playerctl
+brightnessctl
+imagemagick
+jq
+thunar
+
+# Red, audio, portales, keyring y polkit
+network-manager
+network-manager-gnome
+pipewire
+pipewire-pulse
+wireplumber
+xdg-desktop-portal
+xdg-desktop-portal-gtk
+xdg-desktop-portal-hyprland
+gnome-keyring
+libpam-gnome-keyring
+gvfs
+gvfs-backends
+gvfs-fuse
+polkitd
+policykit-1-gnome
+
+# Shell, utilidades y branding del sistema
+zsh
+direnv
+plymouth
+fonts-nerd-jetbrains-mono
+
+# Pendiente de empaquetar o decidir; no activar hasta resolver el bloqueo:
+#   quickshell      -> no esta en el archive de Ubuntu 26.04
+#   awww            -> no esta en el archive; wallpaper daemon alternativo
+#   hyprland 0.56   -> Ubuntu trae 0.53; si no sirve, va al repo Mytical
