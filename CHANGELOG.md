@@ -1,5 +1,17 @@
 # Changelog
 
+## 0.1.1 — Mytical V1.0 Preview (2026-11-23)
+
+- `mytical-session` usa `90-mytical.conf`, por encima de la configuración de
+  Budgie/GDM; el postinst habilita y arranca SDDM.
+- Waybar recibe explícitamente `config.jsonc`; la barra aparece en una
+  instalación limpia.
+- Bootstrap detecta QEMU/KVM y activa render por software, no solo VirtualBox.
+- `set-zsh-shell` se busca también en `~/.local/bin`.
+- Wallpapers personales movidos al repo privado `mytical-wallpapers`; el repo
+  público conserva solo los CC0.
+- Comando `wallpapers` enlazado en PATH.
+
 ## 0.1.0 — Mytical V1.0 Preview (2026-11-17)
 
 - Overlay instalable sobre Ubuntu 26.04 con APT + Nix.

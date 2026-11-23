@@ -75,7 +75,7 @@ log "2/5 repo mínimo de prueba"
 repo="$tmp/repo"
 dist="$repo/dists/mytical"
 bin="$dist/main/binary-amd64"
-deb_rel="pool/main/m/mytical-session/mytical-session_0.1.0-1~resolute1_all.deb"
+deb_rel="pool/main/m/mytical-session/mytical-session_0.1.1-1~resolute1_all.deb"
 mkdir -p "$bin" "$(dirname "$repo/$deb_rel")"
 
 printf 'no es un .deb real: repo mínimo para probar la firma\n' > "$repo/$deb_rel"
@@ -84,7 +84,7 @@ deb_sha="$(sha256sum "$repo/$deb_rel" | awk '{print $1}')"
 
 cat > "$bin/Packages" <<EOF
 Package: mytical-session
-Version: 0.1.0-1~resolute1
+Version: 0.1.1-1~resolute1
 Architecture: all
 Maintainer: Mytical <apt@mytical.invalid>
 Filename: $deb_rel
