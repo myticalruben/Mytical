@@ -12,6 +12,12 @@
 > asset.
 > **Aviso:** este documento es un inventario técnico, no asesoría legal.
 
+> **Actualización 2026-11-23:** el cuerpo, las cifras y las citas del README
+> de Plymouth son la foto de la auditoría del 2026-11-17. El README y
+> `ubuntu/plymouth/mytical/mytical.plymouth` se actualizaron el 2026-11-23 y
+> las resoluciones al final del documento prevalecen. En particular, P0-02
+> quedó cerrado y el README ya no atribuye el tema a CachyOS.
+
 ---
 
 ## Aviso de marca: Mytical no es Ubuntu oficial
@@ -107,13 +113,13 @@ no hay base documentada para redistribuir esos archivos.
 ### 3.1 Plymouth
 
 Archivos: [`ubuntu/plymouth/mytical/`](../../ubuntu/plymouth/mytical/) ·
-README: [`ubuntu/plymouth/README.md`](../../ubuntu/plymouth/README.md#L3-L10)
+README: [`ubuntu/plymouth/README.md`](../../ubuntu/plymouth/README.md#L7-L26)
 
 | Asset | Archivos concretos | Cantidad | Licencia | Evidencia | Estado |
 |---|---|---:|---|---|---|
-| Frames de animación | [`animation-00`](../../ubuntu/plymouth/mytical/animation-00.png), [`animation-20`](../../ubuntu/plymouth/mytical/animation-20.png), [`animation-44`](../../ubuntu/plymouth/mytical/animation-44.png), [`animation-87`](../../ubuntu/plymouth/mytical/animation-87.png) y el resto de `animation-00`–`animation-87` | 88 PNG 640×260 | **Propio (presunto), sin licencia** | 0/88 blobs idénticos a CachyOS; wordmark MYTICAL propio; el README dice "estilo CachyOS" y "se deja el comportamiento de CachyOS" | **P1**: declarar autoría y licencia; **P0** si se usó material fuente de CachyOS |
-| Throbber | [`throbber-00`](../../ubuntu/plymouth/mytical/throbber-00.png), [`throbber-20`](../../ubuntu/plymouth/mytical/throbber-20.png), [`throbber-40`](../../ubuntu/plymouth/mytical/throbber-40.png) y el resto de `throbber-00`–`throbber-40` | 41 PNG 65×65 | **Desconocido — copia de CachyOS, sin licencia** | **41/41 blobs idénticos** al upstream; el [README](../../ubuntu/plymouth/README.md#L9) dice "el throbber azul de CachyOS" | **P0**: retirar o reemplazar |
-| Config Plymouth | [`mytical.plymouth`](../../ubuntu/plymouth/mytical/mytical.plymouth#L1-L20) | 1 | **Desconocido — derivado de CachyOS, sin licencia** | Misma estructura y claves que `cachyos-bootanimation.plymouth`; el README dice que se deja el comportamiento de CachyOS | **P0**: reescribir desde cero o pedir permiso |
+| Frames de animación | [`animation-00`](../../ubuntu/plymouth/mytical/animation-00.png), [`animation-20`](../../ubuntu/plymouth/mytical/animation-20.png), [`animation-44`](../../ubuntu/plymouth/mytical/animation-44.png), [`animation-87`](../../ubuntu/plymouth/mytical/animation-87.png) y el resto de `animation-00`–`animation-87` | 88 PNG 640×260 | **Propio (presunto), sin licencia** | 0/88 blobs idénticos a CachyOS; wordmark MYTICAL propio; el README anterior (2026-11-17) lo describía como "estilo CachyOS"; el actual ya no lo hace | **P1**: declarar autoría y licencia; **P0** si se usó material fuente de CachyOS |
+| Throbber | [`throbber-00`](../../ubuntu/plymouth/mytical/throbber-00.png), [`throbber-20`](../../ubuntu/plymouth/mytical/throbber-20.png), [`throbber-40`](../../ubuntu/plymouth/mytical/throbber-40.png) y el resto de `throbber-00`–`throbber-40` | 41 PNG 65×65 | **Desconocido — copia de CachyOS, sin licencia** | **41/41 blobs idénticos** al upstream en la auditoría; el README anterior lo atribuía a CachyOS (corregido 2026-11-23) | **P0**: retirar o reemplazar |
+| Config Plymouth | [`mytical.plymouth`](../../ubuntu/plymouth/mytical/mytical.plymouth#L1-L14) | 1 | **GPL-3.0-or-later** (propio) | Cabecera `Copyright (C) 2026 Mytical contributors` + SPDX; escrito para las claves de `two-step`; sin copiar comentarios, descripción, títulos ni orden de `cachyos-bootanimation.plymouth`; la configuración efectiva comparada con la anterior es idéntica | **OK** — P0-02 cerrado 2026-11-23 (ver «Resolución P0-02») |
 | Fuente del wordmark | [`Audiowide-Regular.ttf`](../../ubuntu/plymouth/fonts/Audiowide-Regular.ttf) + [`OFL.txt`](../../ubuntu/plymouth/fonts/OFL.txt) | 1 TTF | **OFL-1.1** | Copyright (c) 2012 Brian J. Bonislawsky DBA Astigmatic; el TTF declara familia `Audiowide`; el texto OFL 1.1 está completo | **OK**. Si se redistribuye el TTF, conservar `OFL.txt`; una versión modificada no puede usar el nombre reservado "Audiowide" |
 | Instalador | [`install.sh`](../../ubuntu/plymouth/install.sh) | 1 | Código propio, sin licencia raíz | Copia solo `mytical/`; **no copia `fonts/`**, así que el TTF no viaja al initramfs | P1: incluir aviso si el paquete de branding incorpora la fuente |
 
@@ -275,7 +281,7 @@ declararse como dependencias si el paquete de branding las instala.
 | Activo | Licencia que falta | Atribución que falta | Salida aceptable |
 |---|---|---|---|
 | Throbber `throbber-00`–`throbber-40` | Permiso escrito de CachyOS o una licencia SPDX clara; hoy no existe `LICENSE` upstream | "CachyOS/plymouth-theme" y autor, si se obtiene permiso | **Preferido:** spinner propio (diseño nuevo) con licencia del proyecto. **Alternativa:** permiso escrito y atribución en `THIRD_PARTY_NOTICES` |
-| `mytical.plymouth` | Licencia del config upstream o reescritura independiente | CachyOS si se mantiene la derivación | Reescribir el `.plymouth` desde la documentación de Plymouth; es corto y elimina la duda |
+| `mytical.plymouth` | **No falta: GPL-3.0-or-later** | Mytical contributors (cabecera del archivo) | Reescritura independiente y config propio documentado; ver «Resolución P0-02» |
 | 22 wallpapers | Licencia por archivo, autor y URL de origen | Autor, título y URL, o "propio" con licencia del proyecto | **Retirar los 22** del repo/ISO y publicar un set propio o CC0 con manifiesto y checksums. Para `ww.jpg`, la salida segura es retirarlo o licenciarlo con el titular de Evangelion |
 | 5 iconos wlogout | Licencia del set original | Nombre del set, autor y URL | Reemplazar por Lucide (ISC) o Font Awesome Free (CC BY 4.0) con aviso; o dibujar 5 SVG propios |
 | Frames de animación | Declaración de autoría y licencia de salida | "Ruben Alexander" o el autor que corresponda | Añadir `LICENSE`/`ASSETS-LICENSE` con SPDX y un párrafo de autoría; confirmar que no se usaron frames de CachyOS |
@@ -320,7 +326,7 @@ ciclo. El tema SDDM no bloquea por su licencia, pero sí por cómo se empaqueta.
 | ID | Pri | Activo | Acción concreta | Responsable de decidir | Criterio de cierre |
 |---|---|---|---|---|---|
 | **P0-01** | P0 | Throbber CachyOS (41 PNG) | Retirar `throbber-*.png` del repo y del tema. Sustituir por un spinner propio (nuevo diseño, licencia del proyecto) o lograr permiso escrito de CachyOS | Owner + Legal | `git hash-object` de cada throbber nuevo no coincide con ningún blob de CachyOS; hay licencia/atribución en el repo |
-| **P0-02** | P0 | `mytical.plymouth` derivado | Reescribir el archivo desde la documentación de Plymouth, sin copiar la estructura de CachyOS; o permiso escrito | Owner + Legal | Diff contra upstream sin coincidencias sustanciales; config propio documentado |
+| **P0-02** | P0 | `mytical.plymouth` **(cerrado 2026-11-23)** | Reescritura independiente desde las claves de `two-step`, con copyright y SPDX GPL-3.0-or-later | Owner + Legal | **Cumplido:** diff contra upstream sin coincidencias sustanciales; config propio documentado en «Resolución P0-02» |
 | **P0-03** | P0 | 22 wallpapers | Retirar los 22 del repo público y de la ISO. Publicar un set nuevo propio/CC0 (mínimo 3–5 imágenes) con manifiesto: archivo, autor, licencia, URL, SHA-256 | Owner + Legal | 0 wallpapers sin licencia; `ww.jpg`, `02.jpg`, `6.jpg` y `w0.jpg` fuera; manifiesto completo |
 | **P0-04** | P0 | 5 iconos wlogout | Sustituir por Lucide (ISC) o Font Awesome Free (CC BY 4.0), o dibujar SVG propios. Añadir `LICENSE`/`NOTICE` | Owner (Branding) | 5 iconos nuevos con licencia y atribución; `style.css` apunta a ellos |
 | **P0-05** | P0 | Licencia raíz y de assets | Elegir licencia de código (compatible con GPL del tema) y licencia de arte propio; crear `LICENSE` raíz y `LICENSE-ASSETS`/`ASSETS.md` con SPDX | Owner + Legal | `LICENSE` y licencia de assets presentes; `THIRD_PARTY_NOTICES` coherente; SDDM sigue en GPL-3.0-or-later |
@@ -340,7 +346,9 @@ ciclo. El tema SDDM no bloquea por su licencia, pero sí por cómo se empaqueta.
 
 No construir la ISO hasta que todo esto sea verdad:
 
-- [ ] **P0-01, P0-02, P0-03, P0-04, P0-05 y P0-06 cerrados.**
+- [x] **P0-02 cerrado** (2026-11-23): config Plymouth propio,
+      GPL-3.0-or-later, sin derivación de CachyOS; ver «Resolución P0-02».
+- [ ] **P0-01, P0-03, P0-04, P0-05 y P0-06 cerrados.**
 - [ ] `LICENSE` raíz y licencia de assets propios presentes y compatibles con
       GPL-3.0-or-later del tema SDDM.
 - [ ] `THIRD_PARTY_NOTICES` actualizado y sin afirmaciones pendientes
@@ -411,8 +419,8 @@ c7c0f2b0f6fad8c623e31772ce79f94a4edb9321ffce9fce978ea892d20ae730  ubuntu/plymout
   generada por el proyecto; ya no son blobs de CachyOS.
 - Los **5 iconos de wlogout** fueron reemplazados por dibujos line-art generados
   con ImageMagick por el proyecto.
-- Siguen pendientes: wallpapers sin procedencia, licencia raíz y revisión de la
-  configuración Plymouth derivada.
+- Siguen pendientes: wallpapers sin procedencia y licencia raíz. La revisión de
+  la configuración Plymouth se cerró el 2026-11-23 (ver «Resolución P0-02»).
 
 ## Set de wallpapers propio
 
@@ -426,3 +434,33 @@ c7c0f2b0f6fad8c623e31772ce79f94a4edb9321ffce9fce978ea892d20ae730  ubuntu/plymout
 El código propio queda bajo GPL-3.0-or-later (`LICENSE`, `COPYRIGHT`). Los
 assets de terceros conservan GPL/OFL; los generados son CC0. Queda pendiente la
 clave APT de producción, no la licencia.
+
+## Resolución P0-02 — 2026-11-23
+
+`ubuntu/plymouth/mytical/mytical.plymouth` fue reescrito como configuración
+propia:
+
+- Cabecera con `Copyright (C) 2026 Mytical contributors` y
+  `SPDX-License-Identifier: GPL-3.0-or-later`.
+- Orden y comentarios propios. El upstream no tenía comentarios; el archivo
+  nuevo no copia textos, comentarios ni la disposición de
+  `cachyos-bootanimation.plymouth`.
+- Solo declara las claves obligatorias y las que difieren del default de
+  `two-step`. Se omiten las alineaciones 0.5, `Transition=none`,
+  `TransitionDuration=0.0`, `UseFirmwareBackground=false` y la sección
+  `[boot-up]`, porque ya son el comportamiento por defecto del módulo.
+- Se comparó la configuración efectiva (tema y siete modos) antes y después
+  con los defaults de `two-step`: es idéntica. No se cambiaron frames,
+  throbbers ni fuentes.
+- `ubuntu/plymouth/README.md` documenta autoría, licencias de los assets y
+  cómo verificar el tema.
+
+Diff contra upstream: las líneas que coinciden son nombres de sección y de
+clave exigidos por Plymouth, valores funcionales del tema y la frase genérica
+`SubTitle=Do not turn off your computer`. No se copiaron comentarios,
+descripción, títulos ni orden. Los valores visuales propios (barra cian sobre
+vino, marca de agua) difieren del upstream. **P0-02 cerrado.**
+
+> Las cifras y el veredicto de §1 son la foto de la auditoría del 2026-11-17;
+> las resoluciones posteriores (throbbers, wallpapers, licencia raíz y esta)
+> prevalecen sobre esa foto.

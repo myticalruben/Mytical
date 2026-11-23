@@ -1,18 +1,19 @@
 # Checklist de release — Mytical V1.0
 
-> **Estado: NO-GO.** Auditado el 2026-11-23 (18:26–18:36 UTC) sobre
-> `main` en `152a96d`, con el tag `v0.1.0` en `61f5443`.
+> **Estado: NO-GO.** Snapshot de la auditoría: 2026-11-23 18:38 UTC, `main`
+> en `09239f6`, tag `v0.1.0` en `61f5443`.
 >
 > **Alcance:** release del overlay V1.0 (repo + 4 paquetes `.deb` + repo APT).
 > La ISO V1.1 queda fuera de esta entrega según `distro/README.md` y
 > `CHANGELOG.md`; se marca igualmente qué falta para publicarla.
 >
-> Este documento es el único archivo creado por la auditoría. No se modificó
-> código ni configuración.
+> Este documento lo creó la auditoría; trabajo concurrente lo commiteó en
+> `09239f6` y después quedó una revisión sin commitear. No se modificó código
+> ni configuración para producir el diagnóstico.
 
 ## 0. Resumen ejecutivo
 
-**Listo y verificado:**
+**Listo y verificado (en `09239f6`):**
 
 - `make -C distro test` pasa: construye los 4 `.deb` y valida sesión, welcome
   y tema SDDM.
@@ -20,47 +21,50 @@
 - `nix flake check --no-build` pasa (con aviso de árbol sucio).
 - El repo APT se genera con los 4 paquetes y el flujo de firma funciona
   (probado con una clave efímera en un directorio temporal).
+- El flujo de producción (`PRODUCTION.md`, `production-sign.sh`) está
+  commiteado y su test aislado pasa con clave efímera.
 - Licencia raíz GPL-3.0-or-later, throbbers e iconos wlogout propios, 4
   wallpapers CC0 propios, `LICENSE` del tema SDDM dentro del `.deb`.
+- `e9176fe` sacó los 22 wallpapers personales y `graphify-out/` del **árbol
+  de `main`**; `setup.py`/`nix/home.nix`/`session-start` ahora apuntan a
+  `distro/branding/wallpapers/`.
 
 **No listo (bloqueantes reales):**
 
-1. **El tag no representa el release:** `v0.1.0` quedó 4 commits atrás de
-   `main`; además es anotado pero **sin firma**.
-2. **Árbol sucio:** 9 archivos rastreados de `graphify-out/` modificados y
-   este documento sin commitear. `git describe` da
-   `v0.1.0-4-g152a96d-dirty`.
-3. **CI en rojo:** el job `shellcheck` falla en el commit del tag, en
-   `7d5186c` y en `152a96d` (5 hallazgos reproducidos localmente). Los otros
-   4 jobs pasan.
-4. **Wallpapers personales sin licencia siguen en el repo público:** 22
-   archivos, ~40 MB, servidos con HTTP 200 en `v0.1.0`. La propia auditoría
-   (`ASSET-LICENSES.md`, P0-03) exige retirarlos.
-5. **No hay clave APT de producción:** el flujo está implementado y
-   commiteado en `152a96d`, pero no existe la clave real, fingerprint,
-   revocación ni backup. El `distro/apt/public/` del working tree es de prueba
-   (clave efímera no disponible), está incompleto (2 de 4 paquetes) y no sirve
-   para publicar.
-6. **No hay checksums, ni artefactos firmados, ni GitHub Release.** El tag
+1. **El tag no representa el release:** `v0.1.0` quedó **6 commits** atrás de
+   `main`; además es anotado pero **sin firma**. El tag todavía contiene los
+   wallpapers personales y `graphify-out/` (la limpieza está solo en `main`).
+2. **CI en rojo:** el job `shellcheck` falla en el commit del tag y en
+   `09239f6` (5 hallazgos reproducidos localmente). Los otros 4 jobs pasan.
+3. **Wallpapers personales sin licencia siguen públicos en el tag y en la
+   historia:** 22 archivos, ~40 MB, servidos con HTTP 200 en `v0.1.0`. La
+   propia auditoría (`ASSET-LICENSES.md`, P0-03) exige retirarlos también del
+   historial; borrarlos en un commit nuevo no elimina los blobs.
+4. **No hay clave APT de producción:** el flujo está implementado y
+   commiteado, pero no existe la clave real, fingerprint, revocación ni
+   backup. El `distro/apt/public/` del working tree es de prueba (clave
+   efímera no disponible), está incompleto (2 de 4 paquetes) y no sirve para
+   publicar.
+5. **No hay checksums, ni artefactos firmados, ni GitHub Release.** El tag
    no está firmado y no existe `SHA256SUMS`.
-7. **Changelog incompleto y etiquetas inconsistentes:** la entrada 0.1.0 es
-   del 2026-11-17, pero el tag incluye 11 commits posteriores y `main` 3 más;
-   los paquetes dicen `0.1.0` y la documentación dice `V1.0`.
-8. **Rollback no documentado ni probado:** `install-overlay.sh` no tiene
-   desinstalación y `distro/RELEASE.md` no describe recuperación.
-9. **Instalación limpia no reproducible con artefactos finales:** solo hay
-   notas históricas de una VM; el nuevo verificador se omite fuera de Ubuntu
-   y no sustituye una instalación real.
-10. **Gate de assets incompleto:** el config `mytical.plymouth` sigue derivado
-    de CachyOS según la auditoría (P0-02) y no hay manifiesto por asset con
-    SPDX/autor/URL/SHA-256.
+6. **Changelog incompleto y etiquetas inconsistentes:** la entrada 0.1.0 es
+   del 2026-11-17, pero hay 11 commits entre esa fecha y el tag y 6 más en
+   `main`; los paquetes dicen `0.1.0` y la documentación dice `V1.0`.
+7. **Rollback no documentado ni probado:** `install-overlay.sh` no tiene
+   desinstalación y `distro/RELEASE.md` no describe recuperación. Hay un
+   borrador `docs/distro/ROLLBACK.md` sin commitear ni probar.
+8. **Instalación limpia no reproducible con artefactos finales:** solo hay
+   notas históricas de una VM; el verificador se omite fuera de Ubuntu y no
+   sustituye una instalación real.
+9. **Gate de assets incompleto:** el config `mytical.plymouth` sigue derivado
+   de CachyOS según la auditoría (P0-02) y no hay manifiesto por asset con
+   SPDX/autor/URL/SHA-256.
 
-**Cambio durante la auditoría:** `main` avanzó de `61f5443` a `152a96d` en
-medio de la auditoría (4 commits, ya empujados a `origin/main`). Al empezar,
-`HEAD` era exactamente `v0.1.0`. Cualquier conclusión de "release" debe fijar
-un commit explícito; hoy el tag y `main` no coinciden. Los estados de abajo
-son una foto de las 18:36 UTC; si `main` volvió a moverse, hay que revalidar
-§1, §2 y la CI.
+**Cambio durante la auditoría:** `main` avanzó de `61f5443` (el tag) a
+`09239f6` (6 commits, ya empujados a `origin/main`). Al empezar, `HEAD` era
+exactamente `v0.1.0`. Cualquier conclusión de "release" debe fijar un commit
+explícito; hoy el tag y `main` no coinciden. Si `main` volvió a moverse
+después de las 18:38 UTC, hay que revalidar §1, §2 y la CI.
 
 ---
 
@@ -72,57 +76,73 @@ son una foto de las 18:36 UTC; si `main` volvió a moverse, hay que revalidar
 |---|---|---|
 | Rama | `main` | `git branch --show-current` |
 | Upstream | `origin/main`, sin divergencia (`+0 -0`) | `git status -sb` |
-| HEAD | `152a96d` (`feat(apt): firma y snapshots de produccion`) | `git rev-parse --short HEAD` |
-| `origin/main` | `152a96d` | `git rev-parse origin/main` |
+| HEAD | `09239f6` (`docs(release): auditar v1.0 y bloquear publicacion`) | `git rev-parse --short HEAD` |
+| `origin/main` | `09239f6` | `git rev-parse origin/main` |
 | Tag | `v0.1.0` (anotado, objeto `9000790`) | `git cat-file -t v0.1.0` |
 | Tag apunta a | `61f5443` | `git rev-parse v0.1.0^{commit}` |
 | Tag en remoto | sí, `refs/tags/v0.1.0` | `git ls-remote --tags origin` |
 | Mensaje del tag | `Mytical V1.0 Preview` | `git tag -l -n20 v0.1.0` |
 | Firma del tag | **no firmado**: `error: no signature found` | `git tag -v v0.1.0` |
-| Distancia tag→HEAD | 4 commits | `git rev-list --count v0.1.0..HEAD` |
-| `git describe` | `v0.1.0-4-g152a96d-dirty` | `git describe --tags --always --dirty` |
+| Distancia tag→HEAD | 6 commits | `git rev-list --count v0.1.0..HEAD` |
+| `git describe` | `v0.1.0-6-g09239f6-dirty` | `git describe --tags --always --dirty` |
 
-Los 4 commits posteriores al tag (todos ya en `origin/main`):
+Los 6 commits posteriores al tag (todos ya en `origin/main`):
 
 ```text
+09239f6 docs(release): auditar v1.0 y bloquear publicacion
+e9176fe chore(release): sacar graphify y wallpapers personales del arbol
 152a96d feat(apt): firma y snapshots de produccion
 7d5186c docs(dist): registrar paleta neon e instalacion limpia
 12750e4 test(dist): verificador de instalacion limpia
 d20b005 feat(sddm): modo neon fijo configurable
 ```
 
-`git diff --stat v0.1.0..HEAD`: 13 archivos, +1830/−72. Incluye cambio de
-comportamiento en `palette.py` y `mytical-sddm-sync`, 428 líneas de tests
-nuevos, el verificador de instalación limpia y el flujo de firma/snapshot de
-producción. **No es solo documentación.**
+`git diff --stat v0.1.0..HEAD`: **108 archivos, +2398/−17459**. El borrado
+masivo es la limpieza de `Wallpapers/` y `graphify-out/` en `e9176fe`. El
+resto incluye cambio de comportamiento en `palette.py` y
+`mytical-sddm-sync`, 428 líneas de tests nuevos, el verificador de instalación
+limpia y el flujo de firma/snapshot de producción. **No es solo
+documentación.**
 
 ### 1.2 Cambios sin commit
 
-```text
- M graphify-out/.graphify_build_state.json
- M graphify-out/.graphify_labels.json
- M graphify-out/.graphify_labels.json.sig
- M graphify-out/.graphify_labels.pending.json
- M graphify-out/GRAPH_REPORT.md
- M graphify-out/cache/stat-index.json
- M graphify-out/graph.html
- M graphify-out/graph.json
- M graphify-out/manifest.json
-?? docs/distro/RELEASE-CHECKLIST.md
-```
+A las 18:38 UTC, `git status --porcelain` muestra **16 archivos modificados y
+1 sin rastrear** (`docs/distro/ROLLBACK.md`). Nada de eso está en `v0.1.0`:
 
-- Los 9 archivos de `graphify-out/` están **rastreados** aunque
-  `graphify-out/` figura en `.gitignore`. Hay 68 archivos de graphify en el
-  índice (4,1 MB) y el diff acumulado es +1516/−150. El `.gitignore` no
-  aplica a archivos ya rastreados: es una contradicción de configuración, no
-  un olvido de commit.
+- **Este documento** (`docs/distro/RELEASE-CHECKLIST.md`), commiteado en
+  `09239f6` y editado después por la auditoría.
+- **11 archivos de corrección de shellcheck**, sin commitear: `.github/
+  workflows/check.yml`, `btop/theme.sh`, `distro/apt/production-sign.sh`,
+  `distro/install-overlay.sh`, `distro/tests/test_apt_repo.sh`,
+  `distro/tests/test_production_repo.sh`, `distro/tests/test_session.sh`,
+  `gtk/theme.sh`, `kitty/theme.sh`, `scripts/wallpaper` y
+  `ubuntu/sddm/install.sh`. Con el árbol actual, `shellcheck -x` pasa
+  (exit 0); sin `-x` queda SC1091. Como no está commiteado, la CI de
+  `09239f6` sigue roja.
+- **2 archivos de reescritura de Plymouth**, sin commitear:
+  `ubuntu/plymouth/mytical/mytical.plymouth` (cabecera GPL, claves
+  reescritas) y `ubuntu/plymouth/README.md`. Es la remediación de P0-02, aún
+  sin validar ni commitear.
+- **`docs/distro/ROLLBACK.md` sin rastrear**: borrador de procedimiento de
+  rollback. No está enlazado desde `RELEASE.md` ni probado en una VM.
+- **`distro/RELEASE.md` y `docs/distro/ASSET-LICENSES.md` también están
+  modificados** sin commitear: actualización de la guía de release y del
+  estado de assets en curso. La auditoría de §5 se basa en la versión
+  commiteada de `ASSET-LICENSES.md`.
+
+- El árbol de trabajo de `main` ya **no** tiene los 9 archivos de
+  `graphify-out/` ni los 22 wallpapers: `e9176fe` los sacó del índice y
+  actualizó `setup.py`, `nix/home.nix` y `scripts/session-start` para usar
+  `distro/branding/wallpapers/`. `git ls-files graphify-out` y
+  `git ls-files Wallpapers` devuelven `0`.
+- **Pero el tag `v0.1.0` sí los contiene**: 68 archivos de `graphify-out/` y
+  22 wallpapers. La limpieza está solo en `main`; no en el artefacto tag.
 - `graphify-out/.graphify_python` contiene una ruta local
-  (`/home/ruben/.local/share/uv/...`); el grafo es salida de máquina y no
-  fuente del release.
+  (`/home/ruben/.local/share/uv/...`); ese blob sigue en la historia y en el
+  tag, aunque ya no en el árbol actual.
 - `distro/apt/PRODUCTION.md`, `production-sign.sh` y
-  `test_production_repo.sh` estuvieron sin commitear durante la auditoría y
-  se commitearon en `152a96d`; **no están en `v0.1.0`**. Este documento sigue
-  sin commitear, por diseño.
+  `test_production_repo.sh` se commitearon en `152a96d`; **no están en
+  `v0.1.0`**.
 - `distro/build/` y `distro/apt/public/` están ignorados y no ensucian
   `git status`, pero `public/` está obsoleto (ver §4).
 
@@ -150,26 +170,29 @@ licencia y el grafo generado. No es un release "solo de código".
 
 ## 2. Build y tests actuales
 
-Ejecutado en `7d5186c` salvo donde se indica. Todos los comandos se corrieron
+Ejecutado en `09239f6` salvo donde se indica. Todos los comandos se corrieron
 desde la raíz del repo.
 
 | Comando | Resultado | Evidencia / notas |
 |---|---|---|
 | `make -C distro test` | **OK** (exit 0) | Construye 4 `.deb`; `OK: paquete mytical-session`, `mytical-welcome`, `mytical-sddm-theme`; `OK: test_session.sh`. `test_packages.sh` no cubre `mytical-desktop` (metapaquete). |
-| `python3 -m unittest discover -s tests` | **OK** | `Ran 30 tests in 1.108s` — `OK` |
+| `python3 -m unittest discover -s tests` | **OK** | `Ran 30 tests in 1.243s` — `OK` |
 | `nix flake check --no-build` | **OK** (exit 0) | `all checks passed!`; aviso `Git tree ... is dirty` y `app ... lacks attribute 'meta'`. Se usó `/opt/deepseek-harness/.nix-profile/bin/nix` (Nix 2.35.5): `nix` no está en `PATH`. |
-| `shellcheck --shell=bash $(git ls-files '*.sh') scripts/volume scripts/wallpaper scripts/session-splash` | **FALLA** (exit 1) | 5 hallazgos: `install-overlay.sh:27` SC1091; `test_session.sh:93,101,143,146` SC2016. Reproducido con shellcheck 0.11.0. |
-| `make -C distro/apt test` (sobre el árbol extraído de `v0.1.0`) | **OK** (exit 0) | 4 paquetes, clave GPG efímera, `firma OpenPGP correcta`, `apt-get update` aislado y descarga de `mytical-session`. No se repitió sobre `7d5186c`, pero los cambios posteriores no tocan el flujo APT. |
+| `shellcheck --shell=bash $(git ls-files '*.sh') scripts/volume scripts/wallpaper scripts/session-splash` | **FALLA en `09239f6`** (exit 1) | 5 hallazgos: `install-overlay.sh:27` SC1091; `test_session.sh:93,101,143,146` SC2016. Con la corrección **sin commitear** del árbol actual, `shellcheck -x` pasa (exit 0). |
+| `make -C distro/apt test` (sobre el árbol extraído de `v0.1.0`) | **OK** (exit 0) | 4 paquetes, clave GPG efímera, `firma OpenPGP correcta`, `apt-get update` aislado y descarga de `mytical-session`. No se repitió sobre `09239f6`; los cambios posteriores no tocan el flujo APT (sí el tema SDDM). |
 | `bash distro/tests/test_clean_install.sh` | **SKIP** (exit 0) | En Debian 13 imprime `SKIP: el sistema no es Ubuntu`; no verifica nada. |
-| `distro/tests/test_production_repo.sh` | **no ejecutado** | Archivo sin commitear; no forma parte del tag. |
-| `distro/apt/production-sign.sh` | **no ejecutado** | Archivo sin commitear; el flujo equivalente se validó con `make sign` y clave efímera. |
+| `bash distro/tests/test_production_repo.sh` | **OK** (exit 0) | Clave efímera RSA; `production-sign.sh` firmó la snapshot, `gpgv` devolvió `Good signature` para `InRelease` y `Release.gpg`; un fingerprint inexistente falla sin crear salida. |
+| `distro/apt/production-sign.sh` | **OK** (vía test) | Probado en un snapshot temporal, no contra `/srv/apt` ni con la clave real. |
 
 **CI (GitHub Actions).** Workflow `check`, 5 jobs:
 
 - Commit del tag `61f5443` (run `45238443883`): **failure**. Pasan
   `referencias`, `luacheck`, `python` y `nix flake check`; falla `shellcheck`.
-- `HEAD` `7d5186c` (run `45239113755`, 18:30:25Z): **failure** por el mismo
+- `7d5186c` (run `45239113755`, 18:30:25Z): **failure** por el mismo
   `shellcheck`. Los otros 4 jobs pasan.
+- `HEAD` `09239f6` (run `45239878056`, 18:34:44Z): **failure**; `shellcheck`
+  vuelve a fallar y los otros 4 jobs pasan. Hay una corrección local (11
+  archivos, `shellcheck -x`) que aún no está commiteada.
 
 El workflow solo hace chequeos estáticos: no construye paquetes, no corre
 `distro/tests/`, no valida el repo APT y no verifica licencias.
@@ -180,7 +203,7 @@ El workflow solo hace chequeos estáticos: no construye paquetes, no corre
 
 | Paquete | Versión | Tamaño `.deb` | Contenido principal | Licencia dentro del `.deb` |
 |---|---|---:|---|---|
-| `mytical-sddm-theme` | `0.1.0-1~resolute1` | 2.163.900 B | Tema QML, 7 SVG, `palette.py`, `mytical-sddm-sync`, `Backgrounds/wallpaper` (CC0, SHA-256 `ac074f9b…` = `distro/branding/wallpapers/mytical-01.png`), `LICENSE` GPL | sí (GPL del upstream) |
+| `mytical-sddm-theme` | `0.1.0-1~resolute1` | 2.164.360 B | Tema QML, 7 SVG, `palette.py`, `mytical-sddm-sync`, `Backgrounds/wallpaper` (CC0, SHA-256 `ac074f9b…` = `distro/branding/wallpapers/mytical-01.png`), `LICENSE` GPL | sí (GPL del upstream) |
 | `mytical-session` | `0.1.0-1~resolute1` | 2.064 B | `/usr/bin/mytical-session`, `mytical.desktop`, `/etc/sddm.conf.d/10-mytical.conf` | no |
 | `mytical-welcome` | `0.1.0-1~resolute1` | 2.612 B | `/usr/bin/mytical-welcome` | no |
 | `mytical-desktop` | `0.1.0-1~resolute1` | 1.140 B | metapaquete de dependencias APT | no |
@@ -213,8 +236,8 @@ V1.0" sin apellido (B-07).
   **2026-11-17 00:50:24 UTC**, contiene solo **2 de 4 paquetes**
   (`mytical-desktop` y `mytical-session`; faltan `mytical-sddm-theme` y
   `mytical-welcome`) y está firmado con la **clave efímera del test**
-  (fingerprint de la firma en `InRelease`, clave efímera no disponible). No es un repo de
-  producción ni refleja el árbol actual.
+  (fingerprint de la firma en `InRelease`, clave efímera no disponible). No es
+  un repo de producción ni refleja el árbol actual.
 - `distro/apt/public/` está en `.gitignore`; el estado obsoleto vive solo en
   el working tree, pero confunde si alguien sirve ese directorio.
 - **No hay clave de producción.** No existe fingerprint documentado, ni
@@ -223,9 +246,10 @@ V1.0" sin apellido (B-07).
 - `docs/distro/FUTURE-FEATURES.md` ya marca como **P0 "Clave GPG de
   producción del repo APT y publicación firmada — Pendiente"**.
 - `distro/apt/PRODUCTION.md`, `distro/apt/production-sign.sh` y
-  `distro/tests/test_production_repo.sh` existen **sin commitear**: son un
-  buen punto de partida, pero no están en `v0.1.0` ni en `7d5186c` y no se
-  auditaron como parte del release.
+  `distro/tests/test_production_repo.sh` ya están **commiteados en `152a96d`**
+  (no en `v0.1.0`): definen el flujo offline, snapshot inmutable y
+  verificación con `gpgv`. El flujo está probado con clave efímera, pero la
+  clave real y la primera snapshot de producción siguen pendientes.
 
 ### 4.2 Lo que sí se verificó
 
@@ -239,10 +263,15 @@ En un directorio temporal, a partir del árbol de `v0.1.0`:
 3. `gpg --verify InRelease` devolvió **Good signature**.
 4. `make -C distro/apt test` sobre el árbol extraído pasó completo:
    `apt-get update` aislado resolvió `mytical-session` y descargó el `.deb`.
+5. `bash distro/tests/test_production_repo.sh` (en `152a96d`) pasó:
+   `production-sign.sh` firmó una snapshot temporal, `gpgv` validó
+   `InRelease` y `Release.gpg`, y un fingerprint inexistente falló sin crear
+   salida.
 
 Conclusión: **el mecanismo funciona**; lo que falta es la clave real, su
 custodia y publicar una snapshot firmada de los 4 paquetes actuales. No se
-probó `production-sign.sh` ni una instalación APT real desde un servidor.
+probó contra `/srv/apt`, con la clave de producción, ni una instalación APT
+real desde un servidor.
 
 ---
 
@@ -261,27 +290,33 @@ probó `production-sign.sh` ni una instalación APT real desde un servidor.
 
 ### 5.2 Abierto (bloquea publicación)
 
-1. **22 wallpapers personales siguen en el repo público** (`Wallpapers/`,
-   ~40 MB, 22 archivos rastreados). La auditoría los clasifica
+1. **22 wallpapers personales siguen en el tag y en la historia pública**
+   (`Wallpapers/`, ~40 MB). `e9176fe` los sacó de `main`, pero el tag
+   `v0.1.0` todavía los tiene. La auditoría los clasifica
    **P0-03 — bloqueante**: varios son arte de personajes, `ww.jpg` es un
    personaje reconocible de *Evangelion*, `6.jpg` es una foto real con EXIF de
    cámara/RAW y `02.jpg`/`w0.jpg` tienen riesgo alto. Verificado hoy:
    `raw.githubusercontent.com/.../v0.1.0/Wallpapers/01.png`, `02.jpg` y
    `ww.jpg` devuelven **HTTP 200**. No es un riesgo futuro: ya están
    publicados.
-2. **`mytical.plymouth` derivado de CachyOS** (P0-02): la resolución parcial
-   de `ASSET-LICENSES.md` lo deja explícitamente pendiente ("revisión de la
-   configuración Plymouth derivada").
+2. **`mytical.plymouth` derivado de CachyOS** (P0-02): hay una reescritura
+   local sin commitear (cabecera GPL, claves documentadas) y un README
+   actualizado. No está en `09239f6` ni validada; P0-02 sigue abierto hasta
+   commitearla y revisarla.
 3. **No hay manifiesto por asset** con ruta, SPDX, autor/titular, URL de
    origen y SHA-256, que es la puerta de release de `ASSET-LICENSES.md` §7.
 4. El propio documento de assets mezcla el veredicto viejo ("no apto", 6 P0)
    con resoluciones posteriores; conviene un encabezado de "estado vigente"
    para que nadie lea la tabla vieja como actual (D-08).
 5. `mytical-welcome` y `mytical-sddm-sync` dependen de
-   `~/Pictures/Wallpapers/` (poblado por `setup.py` desde `Wallpapers/`). En
-   una instalación limpia esa ruta no existe; el tema cae al fondo CC0
-   empaquetado, pero el selector de wallpapers queda vacío hasta que el
-   usuario copie fondos. No es bloqueante legal, sí de primera experiencia.
+   `~/Pictures/Wallpapers/`. En `main` esa ruta se llena desde
+   `distro/branding/wallpapers/` (4 CC0), pero **la copia empaquetada de
+   `mytical-sddm-sync` sigue con el fallback antiguo `01.png`**, que ya no
+   existe; la copia de `ubuntu/sddm/` sí usa `mytical-01.png`. El `.deb` no
+   recibe esa corrección (D-13). En una instalación solo con `.deb` la ruta
+   no existe y el selector de `mytical-welcome` queda vacío hasta que el
+   usuario copie fondos. No es bloqueante legal, sí de coherencia y primera
+   experiencia.
 
 ---
 
@@ -296,24 +331,28 @@ evidencia reproducible (comando + salida + fecha), no con una afirmación.
       del release. Hoy `main` se movió durante la auditoría.
 - [ ] **[B]** Decidir si el release es "V1.0 Preview" sobre `0.1.0` o "V1.0"
       final con `1.0.0` y tag nuevo. Dejarlo escrito en `CHANGELOG.md`.
-- [ ] **[B]** Resolver los 3 archivos sin commitear (`PRODUCTION.md`,
-      `production-sign.sh`, `test_production_repo.sh`): incluirlos en el
-      commit de release o retirarlos del árbol de trabajo.
+- [ ] **[B]** Validar e incluir en el release los scripts de producción ya
+      commiteados en `152a96d` (`PRODUCTION.md`, `production-sign.sh`,
+      `test_production_repo.sh`); no están en `v0.1.0`.
 - [ ] **[D]** Decidir el destino de las 10 ramas `feat/*` y los 2 worktrees
       extra.
 
 ### 6.2 Fuente limpia
 
 - [ ] **[B]** `git status --porcelain` vacío en el commit de release.
-- [ ] **[B]** `git ls-files graphify-out | wc -l` = `0`; sacar
-      `graphify-out/` del índice (`git rm -r --cached graphify-out`) y
-      commitear. No alcanza con `.gitignore`.
-- [ ] **[B]** `git ls-files Wallpapers | wc -l` = `0`; retirar los 22
-      wallpapers del HEAD **y de la historia pública** (filter-repo/BFG), o
-      decidir explícitamente que el repo deja de ser público. Un commit que
-      solo los borre no elimina el blob del historial.
+- [ ] **[B]** `git ls-tree -r --name-only <tag> graphify-out | wc -l` = `0`.
+      No alcanza con que `main` ya no lo tenga (`e9176fe`): el tag `v0.1.0`
+      todavía incluye 68 archivos.
+- [ ] **[B]** `git ls-tree -r --name-only <tag> Wallpapers | wc -l` = `0`.
+      Retirar los 22 wallpapers del tag **y de la historia pública**
+      (filter-repo/BFG), o decidir explícitamente que el repo deja de ser
+      público. Un commit que solo los borre no elimina el blob del historial.
+- [ ] **[B]** `git rev-list --objects --all | grep -E 'Wallpapers/|graphify-out/'`
+      no devuelve nada; si devuelve, la historia sigue publicando los blobs.
 - [ ] **[B]** Confirmar que `git archive` del commit de release no contiene
-      `Wallpapers/` ni `graphify-out/`, y que su tamaño es razonable.
+      `Wallpapers/` ni `graphify-out/`; el del tag actual pesa 68.669.440 B.
+- [ ] **[B]** Decidir si `v0.1.0` se conserva como Preview inmutable o se
+      reemplaza; si se conserva, el release final necesita un tag nuevo.
 - [ ] **[D]** Revisar el tamaño del repo (`.git` ~118 MB) después de limpiar
       historia; evaluar LFS si se conservan assets grandes.
 
@@ -335,7 +374,7 @@ evidencia reproducible (comando + salida + fecha), no con una afirmación.
 - [ ] **[B]** Completar `CHANGELOG.md` con **todos** los cambios del tag:
       los 11 commits entre el 2026-11-18 y el tag (keyring/polkit, mouse keys,
       sincronización de fondo SDDM, paleta neón, verificador de instalación
-      limpia) y los 3 posteriores al tag.
+      limpia) y los 6 posteriores al tag.
 - [ ] **[B]** Fecha y versión de la entrada coinciden con tag y paquetes.
 - [ ] **[B]** "Limitaciones conocidas" actualizadas: Preview/overlay, ISO
       V1.1 fuera de alcance, clave APT, wallpapers.
@@ -424,6 +463,8 @@ evidencia reproducible (comando + salida + fecha), no con una afirmación.
       original y que no quedan unidades `mytical-*` fallando.
 - [ ] **[B]** Añadir la sección "Rollback" a `distro/RELEASE.md` y al GitHub
       Release (hoy no existe; `install-overlay.sh` no tiene `--uninstall`).
+- [ ] **[B]** Revisar, commitear y probar el borrador `docs/distro/ROLLBACK.md`
+      (hoy sin rastrear), y enlazarlo desde `RELEASE.md`.
 - [ ] **[D]** Añadir `--uninstall`/`--rollback` al instalador con `--dry-run`.
 
 ### 6.10 Documentación
@@ -437,9 +478,11 @@ evidencia reproducible (comando + salida + fecha), no con una afirmación.
       que realmente se publica (sin wallpapers personales, sin throbbers
       CachyOS, con manifiesto de assets).
 - [ ] **[B]** `docs/distro/CLEAN-INSTALL.md` y `PRODUCTION.md` commiteados y
-      enlazados desde `RELEASE.md` (hoy el segundo está sin commitear).
+      enlazados desde `RELEASE.md` (ambos ya están en `152a96d`).
 - [ ] **[D]** Un solo lugar canónico para la versión (`VERSION` o
       `CHANGELOG.md`); el plan lo menciona y no existe.
+- [ ] **[B]** Commitear los cambios pendientes de `distro/RELEASE.md` y
+      `docs/distro/ASSET-LICENSES.md` (hoy modificados sin commitear).
 - [ ] **[D]** Aviso de no afiliación con Ubuntu/Canonical visible en el
       release.
 
@@ -460,16 +503,16 @@ evidencia reproducible (comando + salida + fecha), no con una afirmación.
 
 | ID | Bloqueante | Evidencia | Criterio de cierre |
 |---|---|---|---|
-| **B-01** | El tag no identifica el release actual | `v0.1.0` → `61f5443`; `main`/`origin` → `7d5186c`; 3 commits de diferencia; tag anotado sin firma (`git tag -v` → "no signature found") | Tag firmado en el commit congelado, `HEAD == tag == origin/main`, `git tag -v` OK |
-| **B-02** | Árbol sucio y salida generada rastreada | 9 archivos `graphify-out/` modificados; 68 rastreados; 4,1 MB; `git describe` `...-dirty`; rutas `/home/ruben/...` en la salida | `git status` vacío; `git ls-files graphify-out` vacío; archive sin graphify |
-| **B-03** | CI en rojo en el commit del tag | Run `45238443883` failure (shellcheck); HEAD `45239113755` failure; 5 hallazgos reproducidos (SC1091, 4×SC2016) | Los 5 jobs verdes en el commit del tag |
-| **B-04** | Wallpapers personales sin licencia en repo público | 22 archivos, ~40 MB, HTTP 200 en `v0.1.0`; `ASSET-LICENSES.md` P0-03 | 0 wallpapers sin licencia en HEAD e historia; manifiesto con licencia/autor/URL/SHA-256 |
-| **B-05** | Sin clave APT de producción y repo de prueba obsoleto | `public/` del 2026-11-17, 2/4 paquetes, firmado con clave efímera no disponible; sin fingerprint/revocación/backup | Clave offline + snapshot firmada de 4 paquetes + `apt-get update` verificado en VM limpia |
+| **B-01** | El tag no identifica el release actual | `v0.1.0` → `61f5443`; `main`/`origin` → `09239f6`; 6 commits de diferencia; tag anotado sin firma (`git tag -v` → "no signature found") | Tag firmado en el commit congelado, `HEAD == tag == origin/main`, `git tag -v` OK |
+| **B-02** | El tag todavía contiene salida generada | `git ls-tree -r v0.1.0 graphify-out` = 68 archivos; `git archive v0.1.0` = 68.669.440 B; en `main` ya es 0 (`e9176fe`) | Tag/artefacto de release sin `graphify-out/` ni rutas `/home/...` |
+| **B-03** | CI en rojo en el commit del tag | Run `45238443883` failure (shellcheck); HEAD `45239878056` failure; 5 hallazgos. Corrección local con `shellcheck -x` pasa, pero no está commiteada | Los 5 jobs verdes en el commit del tag |
+| **B-04** | Wallpapers personales sin licencia en tag e historia pública | `e9176fe` los sacó de `main`, pero `git ls-tree -r v0.1.0 Wallpapers` = 22 y `raw.githubusercontent.com/.../v0.1.0/Wallpapers/ww.jpg` = HTTP 200 | 0 wallpapers sin licencia en tag e historia; URLs históricas ya no sirven; manifiesto con licencia/autor/URL/SHA-256 |
+| **B-05** | Sin clave APT de producción y repo de prueba obsoleto | Flujo `PRODUCTION.md`/`production-sign.sh` commiteado en `152a96d`, probado con clave efímera; `public/` del 2026-11-17, 2/4 paquetes; sin fingerprint/revocación/backup reales | Clave offline + snapshot firmada de 4 paquetes + `apt-get update` verificado en VM limpia |
 | **B-06** | Sin checksums ni artefactos firmados ni GitHub Release | No hay `SHA256SUMS`; `.deb` sin firma; tag sin firma; `releases: []` | `SHA256SUMS` firmado, tag firmado, GitHub Release con artefactos y fingerprint |
-| **B-07** | Changelog incompleto y versión/label inconsistentes | Entrada 0.1.0 del 2026-11-17; 11 commits entre esa fecha y el tag + 3 posteriores sin reflejar; `0.1.0` vs "V1.0" | Changelog completo, versión/tag/paquetes alineados, decisión Preview vs final escrita |
-| **B-08** | Rollback no documentado ni probado | `install-overlay.sh` sin desinstalación; `RELEASE.md` sin rollback; solo menciones en spec/ADR | Procedimiento probado en VM y publicado en `RELEASE.md` |
+| **B-07** | Changelog incompleto y versión/label inconsistentes | Entrada 0.1.0 del 2026-11-17; 11 commits entre esa fecha y el tag + 6 posteriores sin reflejar; `0.1.0` vs "V1.0" | Changelog completo, versión/tag/paquetes alineados, decisión Preview vs final escrita |
+| **B-08** | Rollback no documentado ni probado | `install-overlay.sh` sin desinstalación; `RELEASE.md` sin rollback; hay un `ROLLBACK.md` sin commitear y sin prueba real | Procedimiento probado en VM y publicado/enlazado desde `RELEASE.md` |
 | **B-09** | Instalación limpia no reproducible | Solo notas históricas en `PROGRESS.md`; `test_clean_install.sh` hace SKIP fuera de Ubuntu; sin ISO | VM Ubuntu 26.04 limpia instalada con los `.deb`/repo del release, con evidencia |
-| **B-10** | Gate de assets incompleto | `mytical.plymouth` derivado (P0-02 abierto); sin manifiesto por asset; paquetes sin `copyright` | P0-02 cerrado, manifiesto completo, avisos y `copyright` en los `.deb` |
+| **B-10** | Gate de assets incompleto | `mytical.plymouth` derivado; reescritura local sin commitear (P0-02); sin manifiesto por asset; paquetes sin `copyright` | P0-02 commiteado y revisado, manifiesto completo, avisos y `copyright` en los `.deb` |
 | **B-11** | ISO inexistente (solo si se va a publicar ISO) | `distro/iso/` y `distro/installer/` vacíos; sin pipeline de build | Fuera de V1.0 (overlay); bloquea V1.1/ISO hasta implementarla |
 
 ---
@@ -484,12 +527,13 @@ evidencia reproducible (comando + salida + fecha), no con una afirmación.
 | **D-04** | Incluir `test_apt_repo.sh`, `test_clean_install.sh` y `test_production_repo.sh` en `make test`; quitar versión hardcodeada | Cobertura real del release, no solo de tres paquetes |
 | **D-05** | Borrar/regenerar `distro/apt/public/` y documentar el flujo de snapshots | El `public/` actual es un señuelo obsoleto con 2 paquetes y clave muerta |
 | **D-06** | Triage de las 10 ramas `feat/*` y los 2 worktrees | Menos ruido y menos riesgo de publicar trabajo a medias |
-| **D-07** | Evaluar LFS/historia tras retirar wallpapers | GitHub informa ~113 MB y `.git` ~118 MB; un clon limpio no debería arrastrar 40 MB de arte sin licencia |
+| **D-07** | Evaluar LFS/historia tras retirar wallpapers | GitHub informa ~113 MB y `.git` ~118 MB; un clon limpio no debería arrastrar 40 MB de arte sin licencia en la historia |
 | **D-08** | Encabezado de "estado vigente" en `ASSET-LICENSES.md` y actualizar `RELEASE.md` | El veredicto viejo (6 P0) convive con resoluciones posteriores y confunde |
 | **D-09** | Script de release que genere checksums, firme y publique | Reduce el error manual y deja evidencia reproducible |
 | **D-10** | Aviso de no afiliación con Ubuntu/Canonical en el release y en el README | P1 de la auditoría de marca; barato y evita confusión |
 | **D-11** | Firmar commits/tags por defecto y publicar el fingerprint | Cadena de confianza verificable por terceros |
 | **D-12** | Decidir si `README.md` debe mencionar el overlay o separar README de dotfiles/distro | Hoy el README no guía a la instalación V1.0 |
+| **D-13** | Sincronizar la copia empaquetada de `mytical-sddm-sync` (`distro/debian/...`) con `ubuntu/sddm/`: el `.deb` todavía cae a `01.png`, borrado en `e9176fe` | Evita un fallback roto y la divergencia entre fuente y paquete |
 
 ---
 
@@ -502,8 +546,9 @@ evidencia reproducible (comando + salida + fecha), no con una afirmación.
   únicas evidencias de instalación son las notas de `PROGRESS.md` del
   2026-11-23 en `10.0.0.154`.
 - **No se usó una clave de producción**: no existe. La firma se validó con una
-  clave RSA-3072 efímera en un `GNUPGHOME` temporal; no se probó
-  `production-sign.sh` (sin commitear).
+  clave RSA-3072 efímera en un `GNUPGHOME` temporal; `test_production_repo.sh`
+  probó `production-sign.sh` en una snapshot temporal, no contra `/srv/apt`
+  ni con la clave real.
 - **`make -C distro/apt test` no se corrió contra el working tree** para no
   sobrescribir `distro/apt/public/`; se corrió sobre una extracción limpia de
   `v0.1.0` en `/tmp`, que es el árbol del tag.
@@ -511,15 +556,16 @@ evidencia reproducible (comando + salida + fecha), no con una afirmación.
   deriven de CachyOS; se toma la resolución de `ASSET-LICENSES.md` como
   estado documentado, no como peritaje nuevo.
 - **CI del HEAD** terminó en failure por shellcheck durante la auditoría; el
-  estado de GitHub se consultó vía API el 2026-11-23 ~18:32 UTC.
-- **El árbol se movió durante la auditoría** (`61f5443` → `7d5186c`) y hay 3
-  archivos de trabajo concurrente sin commitear (más este documento);
-  cualquier número de "commits" o "estado limpio" debe revalidarse al congelar
-  el release.
+  estado de GitHub se consultó vía API el 2026-11-23 ~18:38 UTC.
+- **El árbol se movió durante la auditoría** (`61f5443` → `09239f6`, 6
+  commits) y solo este documento queda modificado sin commitear; cualquier
+  número de "commits" o "estado limpio" debe revalidarse al congelar el
+  release.
 - **Solo se regeneraron artefactos ignorados** (`distro/build/`,
   `__pycache__/`) al correr los tests. Esta auditoría no modificó código ni
-  configuración, no tocó `distro/apt/public/` ni creó commits; los 3 commits
-  de §1.1 los produjo trabajo concurrente.
+  configuración, no tocó `distro/apt/public/` ni creó commits; los 6 commits
+  de §1.1 los produjo trabajo concurrente (incluido el que commiteó este
+  documento y la limpieza de wallpapers/graphify).
 
 ---
 
@@ -548,6 +594,7 @@ make -C distro/apt sign PUBLIC=<tmp> GPG_KEY=<efímera>
 gpg --verify <tmp>/dists/mytical/InRelease
 bash distro/tests/test_apt_repo.sh   # sobre extracción de v0.1.0 en /tmp
 bash distro/tests/test_clean_install.sh
+bash distro/tests/test_production_repo.sh
 ```
 
 ## Anexo B — Evidencia externa consultada
@@ -557,5 +604,7 @@ bash distro/tests/test_clean_install.sh
 - Run CI del tag: `https://api.github.com/repos/myticalruben/.dotfiles/actions/runs/45238443883`
   (failure; job `shellcheck`).
 - Run CI de `7d5186c`: run `45239113755` (failure; mismo job).
+- Run CI de `152a96d`: run `45239609891` (failure; mismo job).
+- Run CI de `09239f6`: run `45239878056` (failure; mismo job).
 - Wallpaper público: `https://raw.githubusercontent.com/myticalruben/.dotfiles/v0.1.0/Wallpapers/ww.jpg`
   (HTTP 200).

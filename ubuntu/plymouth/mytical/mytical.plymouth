@@ -1,64 +1,76 @@
+# Tema Plymouth de Mytical.
+#
+# Copyright (C) 2026 Mytical contributors
+# SPDX-License-Identifier: GPL-3.0-or-later
+#
+# Configuración escrita para el módulo two-step de Plymouth. Se declaran las
+# claves obligatorias, las que difieren del valor predeterminado del módulo y
+# los textos de estado; las que se omiten están documentadas en README.md. Este
+# archivo no contiene arte ni fuentes.
+
 [Plymouth Theme]
 Name=Mytical
-Description=Mytical neon boot splash
+Description=Mytical boot splash with animated wordmark
 ModuleName=two-step
 
 [two-step]
+# Directorio donde el módulo busca los PNG del tema.
+ImageDir=/usr/share/plymouth/themes/mytical
+
+# Fuentes del sistema; no se empaquetan en el repositorio.
 Font=Ubuntu 12
 TitleFont=Ubuntu Light 30
-ImageDir=/usr/share/plymouth/themes/mytical
-DialogHorizontalAlignment=.5
-DialogVerticalAlignment=.5
-TitleHorizontalAlignment=.5
-TitleVerticalAlignment=.5
-HorizontalAlignment=.5
-VerticalAlignment=.5
+
+# El wordmark se centra con los valores por defecto (0.5). La marca de agua
+# se desplaza a la izquierda y queda cerca del borde inferior.
 WatermarkHorizontalAlignment=.5
 WatermarkVerticalAlignment=.96
-Transition=none
-TransitionDuration=0.0
+
+# Fondo negro y barra de progreso cian sobre vino.
 BackgroundStartColor=0x000000
 BackgroundEndColor=0x000000
 ProgressBarBackgroundColor=0x2a1820
 ProgressBarForegroundColor=0x00f0ff
+
+# El texto de estado se dibuja debajo de la animación.
 MessageBelowAnimation=true
 
-[boot-up]
-UseEndAnimation=true
-UseFirmwareBackground=false
+# Arranque: la animación y su end-animation son el comportamiento por defecto
+# de two-step, así que no hace falta una sección [boot-up].
 
+# Apagado y reinicio: se desactiva la animación final (por defecto está activa).
 [shutdown]
 UseEndAnimation=false
-UseFirmwareBackground=false
 
 [reboot]
 UseEndAnimation=false
-UseFirmwareBackground=false
 
+# Operaciones con barra de progreso. Title y SubTitle son las claves que lee
+# two-step; no se usa el prefijo _ de otros temas.
 [updates]
 SuppressMessages=true
-ProgressBarShowPercentComplete=true
 UseProgressBar=true
+ProgressBarShowPercentComplete=true
 Title=Installing updates...
 SubTitle=Do not turn off your computer
 
 [system-upgrade]
 SuppressMessages=true
-ProgressBarShowPercentComplete=true
 UseProgressBar=true
+ProgressBarShowPercentComplete=true
 Title=Upgrading system...
 SubTitle=Do not turn off your computer
 
 [firmware-upgrade]
 SuppressMessages=true
-ProgressBarShowPercentComplete=true
 UseProgressBar=true
+ProgressBarShowPercentComplete=true
 Title=Upgrading firmware...
 SubTitle=Do not turn off your computer
 
 [system-reset]
 SuppressMessages=true
-ProgressBarShowPercentComplete=true
 UseProgressBar=true
+ProgressBarShowPercentComplete=true
 Title=Resetting system...
 SubTitle=Do not turn off your computer

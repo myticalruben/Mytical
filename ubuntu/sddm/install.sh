@@ -23,7 +23,9 @@ while [ "$#" -gt 0 ]; do
     esac
 done
 
-[ -n "$target_user" ] && [ "$target_user" != root ] || die "no pude detectar el usuario; usa --user USUARIO"
+if [ -z "$target_user" ] || [ "$target_user" = root ]; then
+    die "no pude detectar el usuario; usa --user USUARIO"
+fi
 home=$(getent passwd "$target_user" | cut -d: -f6)
 [ -n "$home" ] || die "no existe el usuario $target_user"
 state="$home/.local/state/hypr/wallpaper"

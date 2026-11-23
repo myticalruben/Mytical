@@ -28,7 +28,9 @@ jobs:
       # scripts/volume, scripts/wallpaper y scripts/session-splash no llevan
       # extensión .sh: son ejecutables que se enlazan en ~/.local/bin, así que
       # hay que nombrarlos aparte.
-      - run: shellcheck --shell=bash $(git ls-files '*.sh') scripts/volume scripts/wallpaper scripts/session-splash
+      # -x sigue los `source` externos (p. ej. /etc/os-release, indicado con
+      # `# shellcheck source=` en el script) en vez de avisar SC1091.
+      - run: shellcheck -x --shell=bash $(git ls-files '*.sh') scripts/volume scripts/wallpaper scripts/session-splash
 
   lua:
     name: luacheck

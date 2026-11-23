@@ -120,8 +120,9 @@ printf '%s\n' "$key_listing" \
 OUT="${OUT%/}"
 [ -n "$OUT" ] || die "--out no puede ser la raíz"
 out_name="$(basename "$OUT")"
-[ "$out_name" != "." ] && [ "$out_name" != ".." ] \
-    || die "--out no puede ser '.' ni '..'"
+if [ "$out_name" = "." ] || [ "$out_name" = ".." ]; then
+    die "--out no puede ser '.' ni '..'"
+fi
 
 # Evitar copiar el repo dentro de sí mismo (p. ej. --out dentro de pool/).
 # Se comprueba antes de crear directorios para no tocar el repo en un uso

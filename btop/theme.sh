@@ -13,7 +13,9 @@ fi
 
 if [ ! -s "$palette" ]; then
     theme="${XDG_CONFIG_HOME:-$HOME/.config}/waybar/scripts/theme.sh"
-    [ -x "$theme" ] && "$theme" "$img" >/dev/null 2>&1 || true
+    if [ -x "$theme" ]; then
+        "$theme" "$img" >/dev/null 2>&1 || true
+    fi
 fi
 
 py="$(command -v python3 || true)"

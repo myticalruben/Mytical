@@ -90,7 +90,7 @@ esac
 [ "$(sed -n '1p' "$wrapper")" = '#!/bin/sh' ] ||
     fail "el wrapper no empieza por #!/bin/sh"
 
-line_nix="$(grep -nF -- 'exec "$HOME/.nix-profile/bin/hyprland-session"' "$wrapper" |
+line_nix="$(grep -nF -- "exec \"\$HOME/.nix-profile/bin/hyprland-session\"" "$wrapper" |
     head -n1 | cut -d: -f1 || true)"
 line_hypr="$(grep -nF -- 'exec Hyprland' "$wrapper" | head -n1 | cut -d: -f1 || true)"
 line_start="$(grep -nF -- 'exec start-hyprland' "$wrapper" | head -n1 | cut -d: -f1 || true)"
@@ -98,7 +98,7 @@ line_start="$(grep -nF -- 'exec start-hyprland' "$wrapper" | head -n1 | cut -d: 
 [ -n "$line_nix" ] || fail "el wrapper no ejecuta \$HOME/.nix-profile/bin/hyprland-session"
 [ -n "$line_hypr" ] || fail "el wrapper no tiene fallback a Hyprland"
 [ -n "$line_start" ] || fail "el wrapper no tiene fallback a start-hyprland"
-grep -qF -- '[ -x "$HOME/.nix-profile/bin/hyprland-session" ]' "$wrapper" ||
+grep -qF -- "[ -x \"\$HOME/.nix-profile/bin/hyprland-session\" ]" "$wrapper" ||
     fail "el wrapper no comprueba que hyprland-session sea ejecutable"
 
 if [ "$line_nix" -ge "$line_hypr" ] || [ "$line_nix" -ge "$line_start" ]; then
@@ -140,10 +140,10 @@ grep -qF -- '|| true' "$postinst" ||
 if grep -Eq '(^|[^[:alnum:]_])(apt-get|apt|dpkg)[[:space:]]' "$postinst"; then
     fail "postinst no debe instalar dependencias"
 fi
-if grep -Eq '/home/|\$HOME' "$postinst"; then
+if grep -Eq "/home/|\\\$HOME" "$postinst"; then
     fail "postinst no debe tocar directorios de usuario"
 fi
-if grep -Eq '(^|[^[:alnum:]_])(rm|rmdir|find)[[:space:]]|/home/|\$HOME' "$postrm"; then
+if grep -Eq "(^|[^[:alnum:]_])(rm|rmdir|find)[[:space:]]|/home/|\\\$HOME" "$postrm"; then
     fail "postrm no debe borrar configuración del usuario"
 fi
 

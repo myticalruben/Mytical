@@ -41,23 +41,31 @@ remember() {
 # waybar si esta corriendo.
 apply_theme() {
     local script="${XDG_CONFIG_HOME:-$HOME/.config}/waybar/scripts/theme.sh"
-    [ -x "$script" ] && "$script" "$1" >/dev/null 2>&1 || true
+    if [ -x "$script" ]; then
+        "$script" "$1" >/dev/null 2>&1 || true
+    fi
 }
 
 # Thunar y las apps GTK leen el CSS generado al abrir sus ventanas.
 apply_gtk_theme() {
     local script="${XDG_CONFIG_HOME:-$HOME/.config}/gtk-theme/theme.sh"
-    [ -x "$script" ] && "$script" "$1" >/dev/null 2>&1 || true
+    if [ -x "$script" ]; then
+        "$script" "$1" >/dev/null 2>&1 || true
+    fi
 }
 
 apply_btop_theme() {
     local script="${XDG_CONFIG_HOME:-$HOME/.config}/btop-theme/theme.sh"
-    [ -x "$script" ] && "$script" "$1" >/dev/null 2>&1 || true
+    if [ -x "$script" ]; then
+        "$script" "$1" >/dev/null 2>&1 || true
+    fi
 }
 
 apply_kitty_theme() {
     local script="${XDG_CONFIG_HOME:-$HOME/.config}/kitty/theme.sh"
-    [ -x "$script" ] && "$script" "$1" >/dev/null 2>&1 || true
+    if [ -x "$script" ]; then
+        "$script" "$1" >/dev/null 2>&1 || true
+    fi
 }
 
 # awww-daemon se lanza en el mismo bloque de arranque que esto, así que cuando

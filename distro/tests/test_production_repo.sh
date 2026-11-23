@@ -28,7 +28,9 @@ find_gpg() {
     fi
     local dir
     for dir in /nix/store/*-gnupg-*/bin; do
-        [ -x "$dir/gpg" ] && [ -x "$dir/gpgv" ] || continue
+        if [ ! -x "$dir/gpg" ] || [ ! -x "$dir/gpgv" ]; then
+            continue
+        fi
         PATH="$dir:$PATH"
         export PATH
         log "GnuPG del sistema ausente; usando $dir"
