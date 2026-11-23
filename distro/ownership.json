@@ -21,11 +21,11 @@
     "zsh",
     "direnv",
     "plymouth",
-    "fonts-nerd-jetbrains-mono"
+    "fonts-nerd-jetbrains-mono",
+    "hyprlock"
   ],
   "nix": [
     "hyprland",
-    "hyprlock",
     "waybar",
     "quickshell",
     "rofi",

@@ -1,5 +1,12 @@
 # Changelog
 
+## 0.1.3 — Mytical V1.0 Preview (2026-11-23)
+
+- Hyprlock pasa a ser el binario APT del sistema: el de Nix usa módulos PAM
+  de Nix y falla al autenticar en Ubuntu.
+- `mytical-desktop` instala `hyprlock`; se retiró del perfil Nix.
+- `/etc/pam.d/hyprlock` sigue siendo del paquete `mytical-session`.
+
 ## 0.1.2 — Mytical V1.0 Preview (2026-11-23)
 
 - Añadido `/etc/pam.d/hyprlock` propio; evita el fallback a `su` y que PAM

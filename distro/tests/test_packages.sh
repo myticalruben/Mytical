@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 set -euo pipefail
 root="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
-deb="$root/distro/build/mytical-session_0.1.2-1~resolute1_all.deb"
+deb="$root/distro/build/mytical-session_0.1.3-1~resolute1_all.deb"
 [ -f "$deb" ] || { echo "falta $deb; ejecuta make -C distro packages" >&2; exit 1; }
 dpkg-deb -c "$deb" | grep -q usr/share/wayland-sessions/mytical.desktop
 dpkg-deb -c "$deb" | grep -q usr/bin/mytical-session
@@ -12,10 +12,10 @@ if printf '%s\n' "$depends" | grep -Eq 'gnome-shell|ubuntu-session|gdm3'; then
     echo "dependencia GNOME prohibida" >&2; exit 1
 fi
 echo "OK: paquete mytical-session"
-[ -f "$root/distro/build/mytical-welcome_0.1.2-1~resolute1_all.deb" ] || { echo "falta mytical-welcome" >&2; exit 1; }
-dpkg-deb -c "$root/distro/build/mytical-welcome_0.1.2-1~resolute1_all.deb" | grep -q usr/bin/mytical-welcome
+[ -f "$root/distro/build/mytical-welcome_0.1.3-1~resolute1_all.deb" ] || { echo "falta mytical-welcome" >&2; exit 1; }
+dpkg-deb -c "$root/distro/build/mytical-welcome_0.1.3-1~resolute1_all.deb" | grep -q usr/bin/mytical-welcome
 echo "OK: paquete mytical-welcome"
-theme_deb="$root/distro/build/mytical-sddm-theme_0.1.2-1~resolute1_all.deb"
+theme_deb="$root/distro/build/mytical-sddm-theme_0.1.3-1~resolute1_all.deb"
 [ -f "$theme_deb" ] || { echo "falta mytical-sddm-theme" >&2; exit 1; }
 theme_list=$(dpkg-deb -c "$theme_deb")
 printf '%s\n' "$theme_list" | grep -q usr/share/sddm/themes/mytical/Main.qml

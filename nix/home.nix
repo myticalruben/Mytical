@@ -332,7 +332,6 @@ in
           quickshell
           pavucontrol
           brave
-          hyprlock
         ]
       ))
     ++
