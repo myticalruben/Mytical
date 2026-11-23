@@ -153,3 +153,10 @@
   path unit para seguir el wallpaper de Hyprland.
 - El postinst sincroniza el fondo actual del usuario y deja de mostrar el
   gradiente CC0 por defecto.
+
+## 2026-11-23 — Fix aplicado en 10.0.0.154
+
+- Reinstalado `mytical-sddm-theme` con `mytical-sddm-sync`.
+- `Backgrounds/wallpaper` coincide por SHA-256 con `~/Pictures/Wallpapers/03.jpg`.
+- `mytical-sddm-sync.path` habilitado y activo.
+- SDDM reiniciado y captura verificada.
