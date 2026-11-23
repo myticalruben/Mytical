@@ -176,3 +176,19 @@ producción. Para un repo usable, firma con tu clave (`make sign GPG_KEY=...`).
   promete una firma byte a byte idéntica entre ejecuciones.
 - `distro/apt/public/` está en `.gitignore`; no se versionan binarios ni
   índices generados.
+
+## Snapshot publicada en el repo
+
+La snapshot firmada de `v0.1.1` vive en
+`distro/apt/snapshots/v0.1.1/`. Para usarla directamente desde GitHub:
+
+```text
+Types: deb
+URIs: https://raw.githubusercontent.com/myticalruben/Mytical/main/distro/apt/snapshots/v0.1.1
+Suites: mytical
+Components: main
+Signed-By: /usr/share/keyrings/mytical-archive-keyring.gpg
+```
+
+Es una publicación de conveniencia; para producción conviene un host estático
+con HTTPS y snapshots inmutables.

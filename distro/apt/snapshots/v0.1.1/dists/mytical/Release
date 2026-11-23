@@ -1,0 +1,20 @@
+Architectures: amd64
+Codename: mytical
+Components: main
+Date: Mon, 23 Nov 2026 22:08:48 +0000
+Description: Repositorio APT local de Mytical
+Label: Mytical
+Origin: Mytical
+Suite: mytical
+MD5Sum:
+ b19e4c9bf3d52764baa5ab197a0c5b2a             3872 main/binary-amd64/Packages
+ 2e698ac779f9f275c9353b1b1a0614a0             1771 main/binary-amd64/Packages.gz
+SHA1:
+ 4c6549fee29183f4452d9b3e9677f3b916b7438e             3872 main/binary-amd64/Packages
+ a16be202032a067a8ece4ede54e06377c374195d             1771 main/binary-amd64/Packages.gz
+SHA256:
+ a2dd2ac630e5e0290c9368e9a278c62c4191c23dcb19733c252ee999d3fab19a             3872 main/binary-amd64/Packages
+ a78adcd87519ec17d73ed07770a384fafb599d42d3da94a273e01748f359f9f3             1771 main/binary-amd64/Packages.gz
+SHA512:
+ 2a1d519620d207526713f3581fcc433101985d5a350bd5196b0edffdbb55f15e33ad496797e4d2aeb4c23b127b02b7540a4a8a9ec92c22ae3f7a2ea51db2226c             3872 main/binary-amd64/Packages
+ 179da22bf0da9d877fcd92a57e4f324dc33e90629b47bca705257511726d6ffdae9a1fef790e0e9ae4648b42196f2a0fc5e7fb560541d36b6ae36e75a7a4119d             1771 main/binary-amd64/Packages.gz
