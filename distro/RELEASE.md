@@ -142,3 +142,15 @@ en una VM Ubuntu 26.04 con snapshot antes de publicar (ver
 
 La licencia raíz ya está aceptada (GPL-3.0-or-later). Antes de publicar faltan
 la clave APT de producción y la revisión final de assets.
+
+## Repo APT público temporal
+
+Mientras no haya un host estático dedicado, el snapshot firmado de `v0.1.1`
+está publicado en el repo de GitHub:
+
+```text
+https://raw.githubusercontent.com/myticalruben/Mytical/main/distro/apt/snapshots/v0.1.1
+```
+
+`apt-get update` y `apt-cache policy` fueron verificados contra esa URL en la
+VM limpia `10.0.0.166`.

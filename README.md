@@ -259,3 +259,13 @@ Los fondos personales viven en el repo privado
 [`mytical-wallpapers`](https://github.com/myticalruben/mytical-wallpapers), no
 en este repositorio. Instalalos con `./install.sh` de ese repo; la distro usa
 `~/Pictures/Wallpapers` y no necesita cambios de configuración.
+
+## Repo APT
+
+El snapshot firmado de la Preview se publica temporalmente desde:
+
+```text
+https://raw.githubusercontent.com/myticalruben/Mytical/main/distro/apt/snapshots/v0.1.1
+```
+
+Ver [distro/RELEASE.md](distro/RELEASE.md) para las instrucciones.
