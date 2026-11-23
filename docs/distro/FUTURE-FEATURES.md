@@ -7,7 +7,7 @@ ADR/plan cuando se vaya a implementar.
 
 | Prioridad | Característica | Motivo | Estado |
 |---|---|---|---|
-| P1 | **Paleta neón fija para SDDM**, independiente del wallpaper | El tema actual se adapta al fondo; con wallpapers azules el login pierde el acento cian/magenta de la marca | Anotado 2026-11-23 |
+| P1 | **Paleta neón fija para SDDM**, independiente del wallpaper | El tema actual se adapta al fondo; con wallpapers azules el login pierde el acento cian/magenta de la marca | Implementado en `ubuntu/sddm/` (2026-11-23) |
 | P1 | Selector de modo en `mytical-welcome`/ajustes: `adaptive` vs `neon fijo` | Que el usuario elija sin editar `mytical.conf` | Pendiente |
 | P2 | Validación y fallback del fondo SDDM | Si el wallpaper no existe o está corrupto, volver a un fondo CC0 y avisar | Pendiente |
 | P2 | Recorte/posición configurable del fondo | `CropBackground` hoy fijo en `true` | Pendiente |

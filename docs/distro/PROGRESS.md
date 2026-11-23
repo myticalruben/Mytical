@@ -178,3 +178,8 @@
 - `distro/tests/test_clean_install.sh`: solo lectura, 13 comprobaciones y
   SKIP explícito fuera de Ubuntu 26.04.
 - `docs/distro/CLEAN-INSTALL.md` documenta requisitos, salida y remediación.
+
+## 2026-11-23 — Instalación limpia verificada
+
+- El verificador se ejecutó en 10.0.0.154: 13 OK, 0 FALTA, exit 0.
+- SDDM, tema, fondo, sync, paquetes, welcome y Hyprland comprobados.
