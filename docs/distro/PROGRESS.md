@@ -200,3 +200,9 @@
 - Generada clave GPG RSA 4096 de release:
   `E2B91E877C120ABC0442685C17DE2F11062CBDEA`.
 - Clave pública en `distro/apt/mytical-release.{asc,gpg}`.
+
+## 2026-11-23 — Renombre del repositorio
+
+- GitHub: `myticalruben/Mytical`.
+- Actualizados remote, README, bootstrap y enlaces de documentación.
+- La ruta local de trabajo sigue siendo `~/.dotfiles` por compatibilidad.

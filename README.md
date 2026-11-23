@@ -23,7 +23,7 @@ de modo que otra máquina recibe *lo mismo*, no lo que traiga la distro esa
 semana. Ver [`nix/`](nix/README.md).
 
 ```sh
-git clone git@github.com:myticalruben/.dotfiles.git ~/.dotfiles
+git clone git@github.com:myticalruben/Mytical.git ~/.dotfiles
 cd ~/.dotfiles
 nix run .#home-manager -- switch --flake .#default --impure -b backup
 ```

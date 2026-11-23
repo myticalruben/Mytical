@@ -314,7 +314,7 @@ ciclo. El tema SDDM no bloquea por su licencia, pero sí por cómo se empaqueta.
 
 **Roles de decisión** (no se inventan personas que no constan en el repo):
 
-- **Owner / Release:** Ruben Alexander, owner de `myticalruben/.dotfiles`
+- **Owner / Release:** Ruben Alexander, owner de `myticalruben/Mytical`
   (config de Git y remoto).
 - **Legal:** asesoría legal externa, **aún no designada**. Las decisiones de
   licencia y marca requieren su firma; hasta entonces, el owner no debe

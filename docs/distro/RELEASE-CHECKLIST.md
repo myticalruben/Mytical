@@ -607,12 +607,12 @@ bash distro/tests/test_production_repo.sh
 
 ## Anexo B — Evidencia externa consultada
 
-- Repo GitHub: `https://api.github.com/repos/myticalruben/.dotfiles`
+- Repo GitHub: `https://api.github.com/repos/myticalruben/Mytical`
   (`private: false`, `size: 113496`, `releases: []`).
-- Run CI del tag: `https://api.github.com/repos/myticalruben/.dotfiles/actions/runs/45238443883`
+- Run CI del tag: `https://api.github.com/repos/myticalruben/Mytical/actions/runs/45238443883`
   (failure; job `shellcheck`).
 - Run CI de `7d5186c`: run `45239113755` (failure; mismo job).
 - Run CI de `152a96d`: run `45239609891` (failure; mismo job).
 - Run CI de `09239f6`: run `45239878056` (failure; mismo job).
-- Wallpaper público: `https://raw.githubusercontent.com/myticalruben/.dotfiles/v0.1.0/Wallpapers/ww.jpg`
+- Wallpaper público: `https://raw.githubusercontent.com/myticalruben/Mytical/v0.1.0/Wallpapers/ww.jpg`
   (HTTP 200).

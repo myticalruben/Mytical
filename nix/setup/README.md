@@ -23,7 +23,7 @@ bash bootstrap.sh
 ## Poner en marcha
 
 ```sh
-curl -fsSL https://raw.githubusercontent.com/myticalruben/.dotfiles/main/nix/setup/bootstrap.sh -o bootstrap.sh
+curl -fsSL https://raw.githubusercontent.com/myticalruben/Mytical/main/nix/setup/bootstrap.sh -o bootstrap.sh
 less bootstrap.sh    # léelo antes: usa sudo en varios sitios
 bash bootstrap.sh
 ```
