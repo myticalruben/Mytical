@@ -214,3 +214,10 @@
 - `make -C distro/iso test`: 61 comprobaciones, 0 fallos.
 - Build real bloqueado a propósito hasta implementar chroot APT, branding,
   metadatos casper y módulos Calamares.
+
+## 2026-11-23 — Pipeline ISO implementado
+
+- Chroot APT, branding, metadatos casper y módulos Calamares implementados.
+- `make -C distro/iso test`: 185 comprobaciones, 0 fallos.
+- La construcción real sigue bloqueada por espacio: el host tiene 819 MiB libres
+  y se necesitan 20–30 GiB.

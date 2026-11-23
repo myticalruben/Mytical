@@ -11,7 +11,7 @@ todavía **no construye** la ISO (ver [Estado](#estado)).
 |---|---|
 | `Makefile` (`check`, `build`, `clean`, `test`) | listo |
 | `remaster.sh` (`--iso`, `--out`, `--dry-run`, `--repo`) | listo para validar/planificar |
-| Chroot APT, branding y metadatos de casper | **TODO** (el build real aborta a propósito) |
+| Chroot APT, branding y metadatos de casper | **Implementado**; falta probar contra ISO real |
 | `package-lists/mytical.list` | base APT, sin GNOME/GDM/ubuntu-session |
 | `calamares/settings.conf` + `branding/` | mínimos, solo texto |
 | `tests/test_iso_scaffold.sh` | sin ISO, sin root, sin red |
@@ -81,7 +81,7 @@ distro/iso/remaster.sh --dry-run \
     --iso /ruta/ubuntu-26.04-desktop-amd64.iso \
     --repo /ruta/distro/apt/public
 
-# 3. Construir (hoy aborta en el gate TODO)
+# 3. Construir (requiere ISO real, root, ~20–30 GiB libres)
 sudo make -C distro/iso build ISO=/ruta/ubuntu-26.04-desktop-amd64.iso \
     REPO=/ruta/distro/apt/public
 

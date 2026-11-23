@@ -1,8 +1,9 @@
 # ISO V1.1 — alcance, decisiones y criterios
 
-**Estado:** esqueleto reproducible en `distro/iso/`; el build real está
-bloqueado a propósito. No se ha descargado ninguna ISO, no se ha ejecutado
-root y no se ha construido ni publicado nada.
+**Estado:** pipeline implementado en `distro/iso/` y cubierto por tests
+locales. No se ha descargado ninguna ISO, no se ha ejecutado root, no se ha
+ejecutado `mksquashfs`/`xorriso` de verdad y no se ha construido ni publicado
+nada. El build real sigue pendiente de validación con ISO y QEMU.
 
 **Objetivo:** remasterizar la ISO oficial de Ubuntu 26.04 LTS (resolute) con
 casper + Calamares, APT como dueño del escritorio y Nix fuera de la imagen.
@@ -39,12 +40,12 @@ No entra en V1.1:
 | D4 | APT es dueño del escritorio en la ISO (ADR 0002) | La ISO debe arrancar sin Nix; el cierre Nix (~3,8 GiB) no cabe ni es necesario |
 | D5 | SDDM + sesión única `mytical.desktop` (ADR 0006) | Evita depender de `~/.nix-profile` y sesiones GNOME/Ubuntu duplicadas |
 | D6 | Sin GNOME Shell, GDM ni `ubuntu-session` | Identidad y peso; el escritorio es Hyprland |
-| D7 | Remux con `xorriso -boot_image any keep` | Sustituye solo squashfs/tamaño y conserva shim, GRUB y kernel firmados de Ubuntu (Secure Boot) |
-| D8 | Lista APT + repo local opcional `--repo` | Los paquetes `mytical-*` no están en el archive; el repo local los aporta y se puede firmar |
-| D9 | Branding de Calamares solo texto hasta cerrar assets | No distribuir logos/wallpapers sin licencia ni meter binarios en el esqueleto |
+| D7 | Remux con `xorriso -boot_image any keep` | Sustituye solo squashfs/tamaño/manifiesto/`md5sum.txt` y conserva shim, GRUB y kernel firmados de Ubuntu (Secure Boot) |
+| D8 | Lista APT + repo local firmado `--repo` | Los paquetes `mytical-*` no están en el archive; el repo local los aporta y el build exige su clave para `Signed-By` |
+| D9 | Branding de Calamares solo texto hasta cerrar assets | No distribuir logos/wallpapers sin licencia ni meter binarios en la imagen |
 | D10 | Salida en `distro/iso/work/`; `clean` solo borra ese directorio | Evita borrar la ISO de entrada, el repo o `distro/build` por error |
 
-## 3. Pipeline previsto
+## 3. Pipeline implementado
 
 ```text
 ISO oficial (ubuntu-26.04-desktop-amd64.iso)
@@ -53,22 +54,83 @@ ISO oficial (ubuntu-26.04-desktop-amd64.iso)
 work/iso/  ── casper/filesystem.squashfs ── unsquashfs ──▶ work/rootfs/
   │                                                           │
   │                                        repo local ────────┤
-  │                                        chroot APT ────────┤  [TODO]
+  │                                        chroot APT ────────┤
   │                                        Calamares ─────────┤
-  │                                        branding ──────────┘  [TODO]
+  │                                        branding ──────────┘
   │                                                           │
   │                                             mksquashfs -comp xz
   │                                                           ▼
+  ├── update_casper_metadata: filesystem.size + manifest + md5sum.txt
+  │
   └── xorriso -indev ... -outdev ... -boot_image any keep ── work/filesystem.squashfs
           -map filesystem.squashfs /casper/filesystem.squashfs
           -map filesystem.size     /casper/filesystem.size
+          -map filesystem.manifest /casper/filesystem.manifest
+          -map md5sum.txt          /md5sum.txt
                                                                │
                                                                ▼
                                         work/mytical-26.04-amd64.iso + .sha256
 ```
 
-El gate `assert_implemented()` aborta antes de crear `work/` mientras falten
-el chroot, el branding y los módulos de Calamares.
+El gate `assert_implemented()` ya no bloquea el build: comprueba que existan
+las funciones y los `.conf` de Calamares antes de crear `work/`. El build real
+exige root y `--repo`.
+
+### 3.1 `install_mytical_packages()`
+
+- Monta `/proc`, `/sys`, `/dev` y `/dev/pts` en el rootfs y copia un
+  `resolv.conf` temporal; todo se desmonta y se restaura con un `trap` aunque
+  APT falle.
+- Copia la clave pública del repo (`mytical-release.asc` o `.gpg`) a
+  `/usr/share/keyrings/mytical-apt.*` y escribe
+  `/etc/apt/sources.list.d/mytical.sources` con `Signed-By`. La clave se busca
+  junto al repo, en su directorio padre o en `distro/apt/`.
+- Ejecuta `apt-get update` e instala `package-lists/mytical.list` con
+  `--no-install-recommends` y `APT::Get::AutomaticRemove=false`. **Sin
+  autoremove**: el pipeline nunca borra paquetes del rootfs.
+- Falla con un mensaje accionable si falta `--repo`, si el repo no tiene
+  `dists/mytical/` o si no aparece la clave pública. Sin repo no se configuran
+  repos anónimos ni `trusted=yes`.
+- Después de instalar, comprueba que no entraron `ubuntu-session`, `gdm3`,
+  `gnome-shell` ni `ubuntu-desktop*`, y que sí están `casper` y `calamares`.
+
+### 3.2 `apply_branding()`
+
+- Copia los wallpapers CC0 de `distro/branding/wallpapers/` a
+  `/usr/share/backgrounds/mytical/` y `distro/branding/LICENSES.md` a
+  `/usr/share/doc/mytical/branding/`.
+- Escribe `/etc/os-release` con `NAME="Mytical"`, `ID=mytical`,
+  `ID_LIKE=ubuntu`, `VERSION_ID="26.04"`, `MYTICAL_VERSION_ID="1.1"` y
+  `UBUNTU_CODENAME=resolute`. El `VERSION_ID` de Ubuntu se conserva para que
+  las herramientas de la base sigan detectando 26.04; la versión de Mytical
+  viaja en `MYTICAL_VERSION_ID`.
+- Instala el tema SDDM `mytical` y fija
+  `/etc/sddm.conf.d/90-mytical.conf` (`Current=mytical`,
+  `SessionDir=/usr/share/wayland-sessions`). Usa un wallpaper CC0 como fondo.
+- No copia logos ni arte de Ubuntu. Si la ISO base trae el tema SDDM oficial
+  de Ubuntu, lo retira del rootfs para no ofrecerlo en el greeter.
+
+### 3.3 `update_casper_metadata()`
+
+- Mueve el squashfs recién comprimido dentro del árbol extraído para que
+  `md5sum.txt` describa exactamente lo que montará el remux.
+- Recalcula `casper/filesystem.size` con `du -sx --block-size=1`.
+- Regenera `casper/filesystem.manifest` con `dpkg-query` si el chroot trae la
+  herramienta; si no, conserva el manifiesto base y avisa.
+- Regenera `md5sum.txt` desde el árbol extraído, excluyéndose a sí mismo.
+- Deja un `TODO(iso)` explícito: `md5sum.txt` solo puede validarse contra la
+  ISO final después de ejecutar el remux y montar la imagen.
+
+### 3.4 Calamares
+
+`calamares/settings.conf` y `calamares/modules/` incluyen, como mínimo,
+`partition`, `unpackfs`, `bootloader`, `users`, `locale`, `keyboard`,
+`displaymanager` y `finished`, más los módulos de soporte de la secuencia
+(`welcome`, `summary`, `mount`, `machineid`, `fstab`, `localecfg`,
+`networkcfg`, `hwclock`, `services`, `grubcfg`, `umount`). `unpackfs` toma
+`/cdrom/casper/filesystem.squashfs`; `bootloader` usa GRUB/shim; `services`
+habilita SDDM; `displaymanager` solo ofrece la sesión `mytical`.
+
 
 ## 4. Estado actual
 
@@ -76,34 +138,55 @@ el chroot, el branding y los módulos de Calamares.
 |---|---|
 | `distro/iso/README.md` | requisitos, ISO oficial, dependencias, flujo, tamaño y regla de `/nix` |
 | `distro/iso/Makefile` | `check`, `build`, `clean`, `test`; `build` exige `ISO=` |
-| `distro/iso/remaster.sh` | flags, validaciones, plan y estructura del pipeline |
+| `distro/iso/remaster.sh` | flags, validaciones, plan y pipeline completo (chroot, branding, metadatos) |
 | `distro/iso/package-lists/mytical.list` | base APT sin GNOME |
-| `distro/iso/calamares/settings.conf` | secuencia mínima de Calamares |
+| `distro/iso/calamares/settings.conf` | secuencia de Calamares coherente con los módulos |
+| `distro/iso/calamares/modules/` | `.conf` mínimos de partition, unpackfs, bootloader, users, locale, keyboard, displaymanager, finished y soporte |
 | `distro/iso/calamares/branding/mytical/branding.desc` | marca textual, sin imágenes |
-| `distro/iso/tests/test_iso_scaffold.sh` | tests locales sin ISO/root/red |
+| `distro/iso/tests/test_iso_scaffold.sh` | tests locales sin ISO/root/red, con stubs de chroot y herramientas |
 
-Verificado localmente: `make -C distro/iso test` pasa; `make build` sin ISO
-falla con un mensaje accionable y no crea `work/`; la lista no contiene
-`/nix`, `ubuntu-session`, `gdm3` ni `gnome-shell`.
+Verificado localmente:
+
+- `make -C distro/iso test` pasa y cubre las funciones nuevas con stubs; no
+  ejecuta `mksquashfs`, `xorriso` ni `chroot` reales.
+- `make build` sin ISO falla con un mensaje accionable y no crea `work/`.
+- `--dry-run` con una ISO falsa (archivo disperso) y `xorriso` simulado
+  imprime el plan y deja `work/` intacto.
+- `install_mytical_packages()` falla claro sin `--repo`; con repo y clave
+  simula `apt-get update`, instala con `--no-install-recommends`, no ejecuta
+  autoremove y desmonta el chroot.
+- `apply_branding()` escribe `os-release`, copia wallpapers/licencias, instala
+  SDDM y retira el tema de Ubuntu.
+- `update_casper_metadata()` recalcula `filesystem.size` y `md5sum.txt`;
+  `md5sum -c` pasa sobre el árbol extraído simulado.
+- La lista no contiene `/nix`, `ubuntu-session`, `gdm3` ni `gnome-shell`.
+
+**No verificado:** no se descargó la ISO, no se ejecutó root, no se construyó
+la imagen, no se abrió Calamares ni se arrancó QEMU.
+
 
 ## 5. Bloqueantes
 
 ### B1 — Integración casper + Calamares
 
-`casper` y `calamares` están declarados en la lista, pero el build todavía no
-instala nada en el chroot. Faltan:
+El pipeline ya está implementado en `remaster.sh`, pero no se ha ejecutado
+contra una ISO real. Queda por validar en build/QEMU:
 
-- `install_mytical_packages()`: montar `/proc`, `/sys` y `/dev`, configurar el
-  repo local con `signed-by`, `apt-get update` e instalar con
-  `--no-install-recommends`; comprobar después que no entró GNOME.
+- `install_mytical_packages()`: montajes del chroot, `Signed-By` con la clave
+  del repo local, `apt-get update`, instalación con `--no-install-recommends`
+  (**sin autoremove**) y comprobación de que no entró GNOME/GDM. Implementado;
+  los tests lo ejercitan con un `chroot` simulado, no con APT real.
 - `calamares/modules/`: `unpackfs.conf` (origen
   `/cdrom/casper/filesystem.squashfs`), `partition.conf`, `bootloader.conf`,
-  `users.conf`, `displaymanager.conf`, `locale.conf`, `services.conf` y los
-  hooks de post-instalación.
-- `update_casper_metadata()`: regenerar `filesystem.manifest`,
-  `filesystem.size` y `md5sum.txt`; el remux actual no actualiza `md5sum.txt`,
-  así que la comprobación de disco de casper fallaría.
-- Lanzador de Calamares en el live (`.desktop` + autostart) y usuario live.
+  `users.conf`, `displaymanager.conf`, `locale.conf`, `keyboard.conf`,
+  `finished.conf` y los módulos de soporte de la secuencia. Implementado; falta
+  que Calamares lo cargue de verdad.
+- `update_casper_metadata()`: `filesystem.manifest`, `filesystem.size` y
+  `md5sum.txt`; el remux ahora mapea también `md5sum.txt` y el manifiesto.
+  Implementado; la validación final de `md5sum.txt` sigue marcada como
+  `TODO(iso)` hasta montar la ISO resultante.
+- Lanzador de Calamares en el live (`.desktop` + autostart) y usuario live:
+  **pendiente**, fuera de esta entrega.
 
 **Cierre:** un build con `ISO=` y `REPO=` llega al final; Calamares instala
 en QEMU con disco virtio; el sistema instalado arranca.
@@ -160,7 +243,7 @@ sin paquetes inventados.
 ### B6 — Firma y publicación
 
 La ISO debe publicarse con SHA-256 y firma GPG de release, junto al aviso de
-marca. El esqueleto solo genera `.sha256`; la firma y la subida quedan fuera
+marca. El pipeline solo genera `.sha256`; la firma y la subida quedan fuera
 hasta cerrar B1–B5. No anunciar la ISO mientras `distro/iso/` no produzca un
 artefacto reproducible y probado.
 
@@ -192,7 +275,7 @@ para V1.1, pero sí para llamar “reproducible” a la ISO en sentido estricto.
 | AC1 | `make -C distro/iso check ISO=<oficial>` sale 0 con `squashfs-tools` y `xorriso` instalados | pendiente de ISO |
 | AC2 | `make -C distro/iso test` sale 0 sin ISO, root, red ni herramientas | **cumple** |
 | AC3 | `make -C distro/iso build` sin `ISO=` sale distinto de 0 y no crea `work/` | **cumple** |
-| AC4 | `make build ISO=... REPO=...` genera `work/mytical-26.04-amd64.iso` y `.sha256` verificable | pendiente (B1) |
+| AC4 | `make build ISO=... REPO=...` genera `work/mytical-26.04-amd64.iso` y `.sha256` verificable | implementado; pendiente de ejecutar con ISO |
 | AC5 | La ISO arranca en UEFI y BIOS y llega a SDDM | pendiente (B1/B7) |
 | AC6 | La única sesión es `mytical.desktop`; no hay `gdm3`, `ubuntu-session` ni `gnome-shell` | pendiente de build |
 | AC7 | El rootfs y el squashfs no contienen `/nix` | pendiente de build |
@@ -201,14 +284,19 @@ para V1.1, pero sí para llamar “reproducible” a la ISO en sentido estricto.
 | AC10 | Assets con licencia, avisos y manifiesto incluidos; sin arte P0 | pendiente (B3) |
 | AC11 | ISO ≤ 8 GiB y checksum/firma publicados | pendiente (B4/B6) |
 | AC12 | README/ISO.md describen el comando exacto y las limitaciones | **cumple** |
+| AC13 | Los tests cubren `install_mytical_packages`, `apply_branding`, `update_casper_metadata` y `--dry-run` no toca `work/` | **cumple** |
+| AC14 | El build no ejecuta autoremove y el repo local usa `Signed-By` | **cumple en código/tests**; pendiente de APT real |
+
 
 ## 7. Riesgos
 
 | Riesgo | Impacto | Mitigación |
 |---|---|---|
-| APT arrastra recommends de GNOME | ISO más grande y sesiones duplicadas | `--no-install-recommends`, lista explícita y test que falla si aparece GNOME |
-| `xorriso -map` deja `md5sum.txt` obsoleto | “Check disc” falla; no afecta al arranque normal | regenerar `md5sum.txt` antes del remux (B1) |
-| Calamares sin `.conf` de módulos | instalador aborta a mitad | no publicar hasta completar B1; probar en QEMU |
+| APT arrastra recommends de GNOME | ISO más grande y sesiones duplicadas | `--no-install-recommends`, `AutomaticRemove=false`, lista explícita y test que falla si aparece GNOME |
+| `xorriso -map` deja `md5sum.txt` obsoleto | “Check disc” falla; no afecta al arranque normal | regenerar `md5sum.txt` antes del remux y mapearlo en `rebuild_iso` |
+| Calamares sin `.conf` de módulos | instalador aborta a mitad | `.conf` mínimos versionados; falta probar Calamares en QEMU |
+| Repo local sin clave pública | APT no puede validar `Signed-By` y el build aborta | falla clara de `repo_key()`; la clave viaja junto al repo o en `distro/apt/` |
+| Montajes del chroot quedan abiertos si APT falla | `work/` a medio montar | `trap cleanup_chroot` desmonta `/proc`, `/sys`, `/dev`, `/dev/pts` y restaura `resolv.conf` |
 | Secure Boot + NVIDIA | pantalla negra o módulo rechazado | MOK documentado; ISO NVIDIA aparte |
 | Root mal escrito en `remaster.sh` | borrar `work/` o el repo equivocado | `WORK_DIR` fijo, guardas de ruta y `clean` acotado |
 | La ISO oficial cambia (26.04.1/2) | checksums y rutas distintas | validar nombre + `/casper`; fijar SHA-256 en las notas |
@@ -217,12 +305,34 @@ para V1.1, pero sí para llamar “reproducible” a la ISO en sentido estricto.
 
 ## 8. Próximos pasos
 
-1. Implementar `install_mytical_packages()` y `update_casper_metadata()`.
-2. Añadir `calamares/modules/` y un `.desktop` de instalación para el live.
+1. Ejecutar `make -C distro/iso check ISO=<oficial>` y un build real con
+   `REPO=<repo firmado>`; corregir lo que falle en APT/Calamares.
+2. Añadir el lanzador de Calamares en el live (`.desktop` + autostart) y el
+   usuario live; hoy el pipeline instala Calamares pero no lo abre solo.
 3. Construir una ISO de prueba y arrancarla en QEMU UEFI/BIOS.
 4. Cerrar assets (B3) y decidir Hyprland/Quickshell (B5).
 5. Medir tamaño y, si hace falta, recortar antes de firmar (B4/B6).
 6. Escribir el test de arranque/instalación (B7) y adjuntar evidencia.
+
+## 8.1 Limitaciones de esta entrega
+
+- No se descargó la ISO oficial, no se pidió root y no se ejecutó
+  `mksquashfs`, `xorriso`, `unsquashfs` ni `chroot` reales.
+- `install_mytical_packages()` está probado con stubs; APT real, la firma de la
+  clave y los paquetes de Ubuntu 26.04 no se validaron en este entorno.
+- `update_casper_metadata()` valida `md5sum.txt` contra el árbol extraído, no
+  contra la ISO final. La comprobación contra la imagen montada sigue como
+  `TODO(iso)`.
+- Los `.conf` de Calamares son mínimos y parsean como YAML; no se cargaron con
+  `calamares -d` ni se probó una instalación.
+- `apply_branding()` no instala el tema Plymouth de Mytical ni un logo de
+  Calamares: los assets gráficos siguen bloqueados por B3. Solo usa texto,
+  wallpapers CC0 y el tema SDDM existente.
+- No se cambiaron versiones, el repo APT ni `mksquashfs`; el remux conserva
+  shim/GRUB/kernel firmados de Ubuntu y queda pendiente de probar Secure Boot.
+- El `README.md` de `distro/iso/` conserva la descripción del esqueleto; este
+  documento es la referencia del estado implementado.
+
 
 ## 9. Referencias
 
