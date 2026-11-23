@@ -12,11 +12,11 @@
 > asset.
 > **Aviso:** este documento es un inventario técnico, no asesoría legal.
 
-> **Actualización 2026-11-23:** el cuerpo, las cifras y las citas del README
-> de Plymouth son la foto de la auditoría del 2026-11-17. El README y
-> `ubuntu/plymouth/mytical/mytical.plymouth` se actualizaron el 2026-11-23 y
-> las resoluciones al final del documento prevalecen. En particular, P0-02
-> quedó cerrado y el README ya no atribuye el tema a CachyOS.
+> **Actualización 2026-11-23:** el cuerpo y las cifras conservan la foto de la
+> auditoría del 2026-11-17, salvo las filas de P0-02 actualizadas a su cierre.
+> El README y `ubuntu/plymouth/mytical/mytical.plymouth` se actualizaron el
+> 2026-11-23 y las resoluciones al final del documento prevalecen. En
+> particular, P0-02 quedó cerrado y el README ya no atribuye el tema a CachyOS.
 
 ---
 
@@ -445,8 +445,8 @@ propia:
 - Orden y comentarios propios. El upstream no tenía comentarios; el archivo
   nuevo no copia textos, comentarios ni la disposición de
   `cachyos-bootanimation.plymouth`.
-- Solo declara las claves obligatorias y las que difieren del default de
-  `two-step`. Se omiten las alineaciones 0.5, `Transition=none`,
+- Declara las claves obligatorias, las que difieren del default de `two-step`
+  y los textos de estado. Se omiten las alineaciones 0.5, `Transition=none`,
   `TransitionDuration=0.0`, `UseFirmwareBackground=false` y la sección
   `[boot-up]`, porque ya son el comportamiento por defecto del módulo.
 - Se comparó la configuración efectiva (tema y siete modos) antes y después

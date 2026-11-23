@@ -45,11 +45,17 @@ sudo ubuntu/plymouth/install.sh
 
 # 3. Confirmar que la alternativa y Plymouth ven el tema.
 readlink -f /etc/alternatives/default.plymouth
+# -> /usr/share/plymouth/themes/mytical/mytical.plymouth
 plymouth-set-default-theme --list
 
 # 4. Reiniciar: el splash solo se ve durante el arranque.
 sudo reboot
 ```
+
+Plymouth no trae un validador de temas independiente: la prueba final es el
+arranque. El `.plymouth` se validó contra las reglas de `ply-key-file`
+(grupos, comentarios `#`, `clave=valor` y tipos) y contra los valores por
+defecto de `two-step`.
 
 Si el tema no aparece, comprobá que el kernel use `quiet splash` y que
 `update-initramfs` haya terminado sin errores. Para probar sin reiniciar la
