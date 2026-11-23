@@ -1,5 +1,13 @@
 # Checklist de release — Mytical V1.0
 
+> **Addendum 2026-11-23 18:45 UTC:** este documento conserva la foto de la
+> auditoría de las 18:38. Después se commitearon: P0-02/Plymouth (`c82f0db`),
+> shellcheck y rollback (`c82f0db`), y la limpieza de `graphify-out/` y
+> `Wallpapers/` en HEAD (`09239f6`). Siguen abiertos: tag firmado, historia
+> pública con wallpapers, clave APT real, checksums/GitHub Release, copyright
+> en los `.deb`, manifiesto por asset y prueba de rollback real. El veredicto
+> global sigue siendo **NO-GO**.
+
 > **Estado: NO-GO.** Snapshot de la auditoría: 2026-11-23 18:38 UTC, `main`
 > en `09239f6`, tag `v0.1.0` en `61f5443`.
 >
