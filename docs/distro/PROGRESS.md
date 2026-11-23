@@ -160,3 +160,8 @@
 - `Backgrounds/wallpaper` coincide por SHA-256 con `~/Pictures/Wallpapers/03.jpg`.
 - `mytical-sddm-sync.path` habilitado y activo.
 - SDDM reiniciado y captura verificada.
+
+## 2026-11-23 — Backlog
+
+- Creado `docs/distro/FUTURE-FEATURES.md`; anotada la paleta neón fija de SDDM
+  como P1 y el selector adaptive/fijo.
