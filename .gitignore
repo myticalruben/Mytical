@@ -18,5 +18,3 @@ distro/build/
 # Repo APT generado
 distro/apt/public/
 
-# Fondos personales: no se distribuyen; usar distro/branding/wallpapers.
-Wallpapers/

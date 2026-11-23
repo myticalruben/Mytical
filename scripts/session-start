@@ -9,7 +9,7 @@
 
 set -u
 
-wallpaper="${1:-$HOME/Pictures/Wallpapers/mytical-01.png}"
+wallpaper="${1:-$HOME/Pictures/Wallpapers/01.png}"
 
 # El fondo primero: el fundido se ve sobre el escritorio vacio y la barra
 # aparece cuando el wallpaper ya esta pintado.

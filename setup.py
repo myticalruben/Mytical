@@ -50,7 +50,7 @@ ccf("scripts/wallpaper", Type.BIN)
 ccf("scripts/session-start", Type.BIN)
 ccf("scripts/session-splash", Type.BIN)
 ccf("scripts/set-zsh-shell", Type.BIN)
-home_ccf("distro/branding/wallpapers", "Pictures/Wallpapers")
+home_ccf("Wallpapers", "Pictures/Wallpapers")
 
 code = summary()
 

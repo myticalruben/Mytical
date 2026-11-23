@@ -1,0 +1,45 @@
+#!/usr/bin/env bash
+# Gestiona la colección local de wallpapers sin tocar la sesión.
+# Uso: wallpapers list | add ARCHIVO... | remove NOMBRE... | set NOMBRE
+set -euo pipefail
+dir="${MYTICAL_WALLPAPER_DIR:-${XDG_PICTURES_DIR:-$HOME/Pictures}/Wallpapers}"
+case "${1:-list}" in
+    list)
+        [ -d "$dir" ] || { echo "No existe $dir"; exit 1; }
+        find "$dir" -maxdepth 1 -type f \( -iname '*.png' -o -iname '*.jpg' -o -iname '*.jpeg' -o -iname '*.webp' \) -printf '%f\n' | sort
+        ;;
+    add)
+        shift
+        [ "$#" -gt 0 ] || { echo "uso: wallpapers add ARCHIVO..." >&2; exit 2; }
+        mkdir -p "$dir"
+        for src in "$@"; do
+            [ -f "$src" ] || { echo "no existe: $src" >&2; exit 1; }
+            cp -- "$src" "$dir/"
+            echo "agregado: $(basename "$src")"
+        done
+        ;;
+    remove)
+        shift
+        [ "$#" -gt 0 ] || { echo "uso: wallpapers remove NOMBRE..." >&2; exit 2; }
+        for name in "$@"; do
+            target="$dir/$(basename "$name")"
+            [ -f "$target" ] || { echo "no existe: $name" >&2; exit 1; }
+            rm -- "$target"
+            echo "eliminado: $(basename "$name")"
+        done
+        ;;
+    set)
+        shift
+        [ "$#" -eq 1 ] || { echo "uso: wallpapers set NOMBRE" >&2; exit 2; }
+        target="$dir/$(basename "$1")"
+        [ -f "$target" ] || { echo "no existe: $1" >&2; exit 1; }
+        wallpaper set "$target"
+        ;;
+    -h|--help)
+        sed -n '2,5p' "$0" | sed 's/^# \{0,1\}//'
+        ;;
+    *)
+        echo "uso: wallpapers list|add|remove|set" >&2
+        exit 2
+        ;;
+esac

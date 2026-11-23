@@ -68,7 +68,7 @@ state="$home/.local/state/hypr/wallpaper"
 img=""
 [ -r "$state" ] && img=$(head -n 1 "$state")
 if [ -z "$img" ] || [ ! -r "$img" ]; then
-    img="$home/Pictures/Wallpapers/mytical-01.png"
+    img="$home/Pictures/Wallpapers/01.png"
 fi
 [ -r "$img" ] || { echo "no hay wallpaper legible para $user" >&2; exit 1; }
 
