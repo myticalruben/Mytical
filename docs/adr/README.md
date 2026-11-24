@@ -14,3 +14,4 @@ reescribe: se reemplaza por otro ADR que lo supersede.
 | 0004 | Nix estable 26.05, no `nixos-unstable` |
 | 0005 | Jarvis híbrido: local primero, nube con consentimiento |
 | 0006 | Una sola sesión Hyprland; wrapper de sistema |
+| 0009 | V1.1 APT-only; migración a Nix en V2 |

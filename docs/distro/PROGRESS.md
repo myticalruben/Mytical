@@ -221,3 +221,9 @@
 - `make -C distro/iso test`: 185 comprobaciones, 0 fallos.
 - La construcción real sigue bloqueada por espacio: el host tiene 819 MiB libres
   y se necesitan 20–30 GiB.
+
+## 2026-11-24 — APT-only V1.1
+
+- ADR 0009: V1.1 sin Nix; V2 migrará a Nix.
+- Auditoría: Hyprland 0.53 no sirve para Lua; Quickshell/awww ausentes.
+- Siguiente: empaquetar Hyprland 0.55.4 y resolver Quickshell/awww.
