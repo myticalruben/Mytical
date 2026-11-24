@@ -10,11 +10,21 @@ if [ -d "$HOME/.nix-profile/bin" ]; then
     export PATH
 fi
 
-# Preview: Home Manager installs this wrapper in the user's Nix profile.
+# ISO: activar Home Manager desde el cierre Nix si aún no hay perfil.
+if [ ! -x "$HOME/.nix-profile/bin/hyprland-session" ] &&
+   [ -x /usr/bin/mytical-nix-activate ]; then
+    /usr/bin/mytical-nix-activate || true
+fi
+if [ -d "$HOME/.nix-profile/bin" ]; then
+    PATH="$HOME/.nix-profile/bin:$PATH"
+    export PATH
+fi
+
+# Preview/ISO: Home Manager instala este wrapper en el perfil del usuario.
 if [ -x "$HOME/.nix-profile/bin/hyprland-session" ]; then
     exec "$HOME/.nix-profile/bin/hyprland-session"
 fi
-# ISO: APT owns the compositor.
+# Fallback de recuperación: compositor de APT, si existiera.
 if command -v Hyprland >/dev/null 2>&1; then
     exec Hyprland
 fi

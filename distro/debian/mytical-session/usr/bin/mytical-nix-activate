@@ -1,0 +1,29 @@
+#!/bin/sh
+# Activa Home Manager en el primer login de la ISO. El cierre Nix ya está en
+# /nix; no se descarga nada. Es idempotente.
+set -eu
+
+export PATH="/nix/var/nix/profiles/default/bin:/usr/bin:/bin${PATH:+:$PATH}"
+export NIX_REMOTE="${NIX_REMOTE:-daemon}"
+
+[ -x /nix/var/nix/profiles/default/bin/nix ] || {
+    echo "mytical-nix-activate: falta Nix en /nix" >&2
+    exit 1
+}
+[ -x /usr/bin/home-manager ] || {
+    echo "mytical-nix-activate: falta /usr/bin/home-manager" >&2
+    exit 1
+}
+
+if [ ! -e "$HOME/.nix-profile/bin/hyprland-session" ]; then
+    [ -e "$HOME/.dotfiles" ] || ln -s /usr/share/mytical/dotfiles "$HOME/.dotfiles"
+    /usr/bin/home-manager switch \
+        --flake /usr/share/mytical/dotfiles#default --impure -b backup
+fi
+
+# Fondos CC0 de la ISO en una colección escribible por el usuario.
+if [ -d /usr/share/backgrounds/mytical ]; then
+    mkdir -p "$HOME/Pictures/Wallpapers"
+    find /usr/share/backgrounds/mytical -maxdepth 1 -type f -name '*.png' \
+        -exec cp -n {} "$HOME/Pictures/Wallpapers/" \;
+fi

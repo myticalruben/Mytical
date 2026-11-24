@@ -25,23 +25,7 @@ mytical-sddm-theme
 mytical-desktop
 mytical-welcome
 
-# Escritorio (propiedad de APT en la ISO, ver ADR 0002)
-hyprland
-waybar
-dunst
-kitty
-wlogout
-rofi
-hyprlock
-hypridle
-cliphist
-grim
-slurp
-playerctl
-brightnessctl
-imagemagick
-jq
-thunar
+# Escritorio: Nix (ADR 0010); no se instala Hyprland/Waybar/etc. de APT
 
 # Red, audio, portales, keyring y polkit
 network-manager
@@ -70,3 +54,5 @@ fonts-nerd-jetbrains-mono
 #   quickshell      -> no esta en el archive de Ubuntu 26.04
 #   awww            -> no esta en el archive; wallpaper daemon alternativo
 #   hyprland 0.56   -> Ubuntu trae 0.53; si no sirve, va al repo Mytical
+
+# Nix se copia como cierre desde el host de build; no es un paquete APT.
