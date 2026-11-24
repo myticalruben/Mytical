@@ -24,7 +24,9 @@
 set -euo pipefail
 
 SCRIPT_DIR="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)"
+SOURCE_ROOT="$(cd -- "$SCRIPT_DIR/../.." && pwd)"
 WORK_DIR="$SCRIPT_DIR/work"
+NIX_SOURCE="${MYTICAL_NIX_SOURCE:-/nix}"
 ISO_TREE="$WORK_DIR/iso"
 ROOTFS_DIR="$WORK_DIR/rootfs"
 NEW_SQUASHFS="$WORK_DIR/rootfs.squashfs"
@@ -367,6 +369,7 @@ print_plan() {
     info "  2. crear work y extraer la ISO ............ xorriso -osirrox"
     info "  3. extraer el squashfs elegido ............ unsquashfs casper/$SQUASHFS_NAME"
     info "  4. copiar el repo local ................... /opt/mytical/apt"
+    info "  4b. copiar /nix y Home Manager ............. cierre Nix de la ISO"
     info "  5. chroot: APT instala package-lists ...... apt-get, --no-install-recommends"
     info "  6. copiar Calamares, modulos y branding ... /etc/calamares"
     info "  7. aplicar branding y licencias ........... /etc/os-release + SDDM mytical"
@@ -441,6 +444,51 @@ El build necesita la raiz de un repo APT local con dists/mytical/ y su clave pub
 
     install -d -- "$ROOTFS_DIR/opt/mytical/apt"
     cp -a --no-preserve=ownership -- "$REPO/." "$ROOTFS_DIR/opt/mytical/apt/"
+}
+
+stage_nix() {
+    log "4b/12 copiar cierre Nix y Home Manager"
+    [ -x "$NIX_SOURCE/var/nix/profiles/default/bin/nix" ] ||
+        die "no existe Nix en $NIX_SOURCE; definí MYTICAL_NIX_SOURCE"
+    [ -d "$SOURCE_ROOT/nix" ] || die "falta el arbol Nix en $SOURCE_ROOT"
+
+    cp -a "$NIX_SOURCE" "$ROOTFS_DIR/nix"
+    install -d "$ROOTFS_DIR/usr/bin" "$ROOTFS_DIR/etc/nix" "$ROOTFS_DIR/etc/profile.d"
+    if [ -e "$ROOTFS_DIR/nix/var/nix/profiles/default/bin/nix" ]; then
+        ln -sfn /nix/var/nix/profiles/default/bin/nix "$ROOTFS_DIR/usr/bin/nix"
+    fi
+
+    # Home Manager del perfil de build: el cierre ya trae sus dependencias.
+    hm="$(readlink -f /home/mytical/.nix-profile/bin/home-manager 2>/dev/null || true)"
+    if [ -n "$hm" ] && [ -x "$hm" ]; then
+        ln -sfn "$hm" "$ROOTFS_DIR/usr/bin/home-manager"
+    else
+        die "no se encontro home-manager en /home/mytical/.nix-profile"
+    fi
+
+    for unit in nix-daemon.service nix-daemon.socket; do
+        for src in "/etc/systemd/system/$unit" "/lib/systemd/system/$unit" "/usr/lib/systemd/system/$unit"; do
+            [ -f "$src" ] && cp -a "$src" "$ROOTFS_DIR/etc/systemd/system/$unit" && break
+        done
+    done
+    install -d "$ROOTFS_DIR/etc/systemd/system/multi-user.target.wants"         "$ROOTFS_DIR/etc/systemd/system/sockets.target.wants"
+    [ -e "$ROOTFS_DIR/etc/systemd/system/nix-daemon.service" ] &&
+        ln -sfn /etc/systemd/system/nix-daemon.service             "$ROOTFS_DIR/etc/systemd/system/multi-user.target.wants/nix-daemon.service"
+    [ -e "$ROOTFS_DIR/etc/systemd/system/nix-daemon.socket" ] &&
+        ln -sfn /etc/systemd/system/nix-daemon.socket             "$ROOTFS_DIR/etc/systemd/system/sockets.target.wants/nix-daemon.socket"
+    [ -f /etc/nix/nix.conf ] && cp -a /etc/nix/nix.conf "$ROOTFS_DIR/etc/nix/nix.conf"
+    [ -f /etc/profile.d/nix.sh ] && cp -a /etc/profile.d/nix.sh "$ROOTFS_DIR/etc/profile.d/nix.sh"
+
+    install -d "$ROOTFS_DIR/usr/share/mytical/dotfiles"
+    tar -C "$SOURCE_ROOT" -cf -         flake.nix flake.lock nix hypr waybar quickshell wlogout rofi dunst         kitty btop gtk scripts 2>/dev/null |
+        tar -C "$ROOTFS_DIR/usr/share/mytical/dotfiles" -xf -
+    ln -sfn /usr/share/mytical/dotfiles "$ROOTFS_DIR/etc/skel/.dotfiles"
+
+    install -d "$ROOTFS_DIR/etc/skel/Pictures/Wallpapers"
+    if [ -d "$ROOTFS_DIR/usr/share/backgrounds/mytical" ]; then
+        cp -a "$ROOTFS_DIR/usr/share/backgrounds/mytical/."             "$ROOTFS_DIR/etc/skel/Pictures/Wallpapers/"
+    fi
+    info "Nix copiado; Home Manager: $hm; configs: /usr/share/mytical/dotfiles"
 }
 
 cleanup_chroot() {
@@ -704,11 +752,14 @@ EOF
     info "branding: ${#wallpapers[@]} wallpapers CC0, os-release y SDDM mytical"
 }
 
-assert_no_nix() {
-    log "8/12 verificar que no hay /nix"
-    if [ -e "$ROOTFS_DIR/nix" ] || [ -L "$ROOTFS_DIR/nix" ]; then
-        die "el rootfs contiene /nix; la ISO V1.1 no hornea Nix"
-    fi
+assert_nix() {
+    log "8/12 verificar el cierre Nix"
+    [ -x "$ROOTFS_DIR/nix/var/nix/profiles/default/bin/nix" ] ||
+        die "falta el binario Nix en el rootfs"
+    [ -x "$ROOTFS_DIR/usr/bin/home-manager" ] ||
+        die "falta home-manager en el rootfs"
+    [ -x "$ROOTFS_DIR/usr/bin/mytical-nix-activate" ] ||
+        die "falta mytical-nix-activate en el rootfs"
 }
 
 update_casper_size() {
@@ -968,7 +1019,8 @@ build_iso() {
     install_mytical_packages
     stage_calamares
     apply_branding
-    assert_no_nix
+    stage_nix
+    assert_nix
     repack_squashfs
     update_casper_metadata
     rebuild_iso
