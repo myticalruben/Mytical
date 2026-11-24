@@ -1,4 +1,4 @@
-# Release V1.0.1 Preview
+# Release V1.0.3 Preview
 
 ## Construir
 
@@ -145,11 +145,11 @@ la clave APT de producción y la revisión final de assets.
 
 ## Repo APT público temporal
 
-Mientras no haya un host estático dedicado, el snapshot firmado de `v0.1.1`
+Mientras no haya un host estático dedicado, el snapshot firmado de `v0.1.3`
 está publicado en el repo de GitHub:
 
 ```text
-https://raw.githubusercontent.com/myticalruben/Mytical/main/distro/apt/snapshots/v0.1.1
+https://raw.githubusercontent.com/myticalruben/Mytical/main/distro/apt/snapshots/v0.1.3
 ```
 
 `apt-get update` y `apt-cache policy` fueron verificados contra esa URL en la
