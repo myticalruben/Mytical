@@ -14,6 +14,12 @@
 # La ISO y el repo APT se pasan por ruta: el script no descarga nada. El repo
 # es obligatorio para el build porque package-lists/mytical.list declara
 # paquetes mytical-* que solo existen en ese repo.
+#
+# Layout de casper: Ubuntu 26.04 publica el rootfs como
+# casper/minimal.standard.squashfs (con minimal.standard.size/.manifest e
+# install-sources.yaml). Las ISO anteriores usan casper/filesystem.squashfs
+# con filesystem.size/.manifest. El script detecta uno de los dos y deriva de
+# ese nombre sus metadatos.
 
 set -euo pipefail
 
@@ -21,7 +27,13 @@ SCRIPT_DIR="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)"
 WORK_DIR="$SCRIPT_DIR/work"
 ISO_TREE="$WORK_DIR/iso"
 ROOTFS_DIR="$WORK_DIR/rootfs"
-NEW_SQUASHFS="$WORK_DIR/filesystem.squashfs"
+NEW_SQUASHFS="$WORK_DIR/rootfs.squashfs"
+
+# Squashfs soportados, en orden de preferencia. "minimal.standard" es el
+# layout de 26.04; "filesystem" queda como compatibilidad con ISO anteriores.
+SQUASHFS_CANDIDATES=(minimal.standard.squashfs filesystem.squashfs)
+SQUASHFS_NAME=""
+SQUASHFS_BASE=""
 
 # Branding textual/CC0 versionado en distro/branding/; el tema SDDM sale del
 # paquete mytical-sddm-theme ya versionado en distro/debian/.
@@ -237,18 +249,71 @@ check_root_policy() {
     fi
 }
 
+# Fija el squashfs elegido y el prefijo de sus metadatos. Todo el pipeline lee
+# $SQUASHFS_NAME (squashfs) y $SQUASHFS_BASE (size/manifest) en vez de asumir
+# filesystem.*, de modo que el layout nuevo y el antiguo comparten codigo.
+set_squashfs_name() {
+    case "$1" in
+        minimal.standard.squashfs|filesystem.squashfs) ;;
+        *) die "squashfs de casper no soportado: $1" ;;
+    esac
+    SQUASHFS_NAME="$1"
+    SQUASHFS_BASE="${1%.squashfs}"
+}
+
+# Elige el squashfs a partir de un listing de /casper (lineas /casper/...).
+# Prefiere minimal.standard.squashfs: es el rootfs principal en 26.04.
+resolve_squashfs_from_listing() {
+    local listing="$1" candidate
+    for candidate in "${SQUASHFS_CANDIDATES[@]}"; do
+        if grep -qxF -- "/casper/$candidate" <<<"$listing"; then
+            set_squashfs_name "$candidate"
+            return 0
+        fi
+    done
+    return 1
+}
+
+# Elige el squashfs a partir del arbol ya extraido. Respeta $SQUASHFS_NAME si
+# viene fijado y existe; si no, detecta el layout por presencia de archivos.
+resolve_squashfs_from_tree() {
+    local candidate
+    if [ -n "$SQUASHFS_NAME" ] && [ -f "$ISO_TREE/casper/$SQUASHFS_NAME" ]; then
+        set_squashfs_name "$SQUASHFS_NAME"
+        return 0
+    fi
+    for candidate in "${SQUASHFS_CANDIDATES[@]}"; do
+        if [ -f "$ISO_TREE/casper/$candidate" ]; then
+            set_squashfs_name "$candidate"
+            return 0
+        fi
+    done
+    return 1
+}
+
 check_iso_layout() {
     local listing
     info "leyendo el arbol de $ISO"
     if ! listing="$(xorriso -indev "$ISO" -find /casper -maxdepth 1 2>/dev/null)"; then
         die "xorriso no pudo leer la ISO: $ISO"
     fi
+    # xorriso -find entrecomilla las rutas; normalizar para comparar.
+    listing="${listing//\'/}"
 
-    if ! grep -qx '/casper/filesystem.squashfs' <<<"$listing"; then
-        die "la ISO no trae /casper/filesystem.squashfs; no parece Ubuntu desktop"
+    if ! resolve_squashfs_from_listing "$listing"; then
+        die "la ISO no trae /casper/minimal.standard.squashfs ni /casper/filesystem.squashfs; no parece Ubuntu desktop"
     fi
     if ! grep -qx '/casper/vmlinuz' <<<"$listing"; then
         die "la ISO no trae /casper/vmlinuz; no parece Ubuntu desktop"
+    fi
+
+    info "squashfs de origen: casper/$SQUASHFS_NAME"
+    if [ "$SQUASHFS_BASE" = "minimal.standard" ]; then
+        if grep -qx '/casper/install-sources.yaml' <<<"$listing"; then
+            info "metadata: minimal.standard.size/.manifest + install-sources.yaml"
+        else
+            warn "la ISO usa minimal.standard.squashfs pero no trae casper/install-sources.yaml"
+        fi
     fi
 }
 
@@ -296,18 +361,19 @@ print_plan() {
     info "ISO de salida  : $OUT"
     info "Repo local     : ${REPO:-(ninguno; el build lo exige)}"
     info "Work           : $WORK_DIR"
+    info "Layout casper  : casper/$SQUASHFS_NAME ($SQUASHFS_BASE.size, $SQUASHFS_BASE.manifest)"
     info ""
     info "  1. validar ISO y /casper ................. hecho"
     info "  2. crear work y extraer la ISO ............ xorriso -osirrox"
-    info "  3. extraer el squashfs .................... unsquashfs"
+    info "  3. extraer el squashfs elegido ............ unsquashfs casper/$SQUASHFS_NAME"
     info "  4. copiar el repo local ................... /opt/mytical/apt"
     info "  5. chroot: APT instala package-lists ...... apt-get, --no-install-recommends"
     info "  6. copiar Calamares, modulos y branding ... /etc/calamares"
     info "  7. aplicar branding y licencias ........... /etc/os-release + SDDM mytical"
     info "  8. verificar que no hay /nix .............. obligatorio"
     info "  9. recomprimir squashfs ................... mksquashfs + xz"
-    info " 10. filesystem.size + md5sum.txt ........... implementado"
-    info " 11. remux de la ISO ....................... xorriso -boot_image keep"
+    info " 10. metadata: $SQUASHFS_BASE.size/manifest, install-sources.yaml y md5sum.txt"
+    info " 11. remux con /casper/$SQUASHFS_NAME ......... xorriso -boot_image keep"
     info " 12. checksum SHA256 ....................... $OUT.sha256"
     info ""
     info "El build real exige root y --repo; este dry-run no ha creado work/."
@@ -330,7 +396,8 @@ assert_implemented() {
             die "falta calamares/modules/$module.conf; el build no puede continuar"
     done
 
-    for module in install_mytical_packages apply_branding update_casper_metadata; do
+    for module in install_mytical_packages apply_branding update_casper_size \
+        update_install_sources update_casper_metadata rebuild_iso; do
         declare -F "$module" >/dev/null ||
             die "falta la funcion $module(); el build no puede continuar"
     done
@@ -355,8 +422,11 @@ extract_iso() {
 
 unsquash_rootfs() {
     log "3/12 extraer el squashfs"
+    resolve_squashfs_from_tree ||
+        die "no hay casper/minimal.standard.squashfs ni casper/filesystem.squashfs en $ISO_TREE"
+    info "extrayendo casper/$SQUASHFS_NAME"
     rm -rf -- "$ROOTFS_DIR"
-    unsquashfs -d "$ROOTFS_DIR" "$ISO_TREE/casper/filesystem.squashfs" >/dev/null
+    unsquashfs -d "$ROOTFS_DIR" "$ISO_TREE/casper/$SQUASHFS_NAME" >/dev/null
 }
 
 stage_repo() {
@@ -537,6 +607,8 @@ EOF
 }
 
 stage_calamares() {
+    local unpackfs="$ROOTFS_DIR/etc/calamares/modules/unpackfs.conf"
+
     log "6/12 copiar Calamares"
     install -d -- "$ROOTFS_DIR/etc/calamares/modules"
     install -d -- "$ROOTFS_DIR/usr/share/calamares/branding/mytical"
@@ -546,6 +618,15 @@ stage_calamares() {
         "$ROOTFS_DIR/etc/calamares/modules/"
     cp -a --no-preserve=ownership -- "$SCRIPT_DIR/calamares/branding/mytical/." \
         "$ROOTFS_DIR/usr/share/calamares/branding/mytical/"
+
+    # unpackfs.conf se versiona con el nombre del layout nuevo. Si la ISO de
+    # entrada usa filesystem.squashfs, el instalador debe copiar ese nombre:
+    # se reescribe solo la linea source de la copia que va al rootfs.
+    [ -n "$SQUASHFS_NAME" ] ||
+        die "SQUASHFS_NAME sin resolver; no se puede configurar unpackfs.conf"
+    sed -i -E \
+        "s|^([[:space:]]*source:[[:space:]]*\")/cdrom/casper/[^\"]*\"|\1/cdrom/casper/$SQUASHFS_NAME\"|" \
+        "$unpackfs"
 }
 
 apply_branding() {
@@ -631,9 +712,149 @@ assert_no_nix() {
 }
 
 update_casper_size() {
-    local bytes
+    local bytes size_file
+    resolve_squashfs_from_tree ||
+        die "no hay squashfs de casper en $ISO_TREE; no se puede nombrar el .size"
     bytes="$(du -sx --block-size=1 "$ROOTFS_DIR" | cut -f1)"
-    printf '%s\n' "$bytes" > "$ISO_TREE/casper/filesystem.size"
+    size_file="$ISO_TREE/casper/$SQUASHFS_BASE.size"
+    printf '%s\n' "$bytes" > "$size_file"
+    info "casper/$SQUASHFS_BASE.size = $bytes (rootfs sin comprimir)"
+}
+
+# install-sources.yaml lo consume el instalador para elegir la imagen que
+# copia. Solo se toca la entrada standard: las variantes de idioma y enhanced
+# describen otros squashfs y conservan su path/size. El size se refiere al
+# squashfs comprimido, no al rootfs sin comprimir.
+update_install_sources() {
+    local sources="$ISO_TREE/casper/install-sources.yaml"
+    local squashfs="$ISO_TREE/casper/$SQUASHFS_NAME"
+    local tmp bytes
+
+    if [ ! -f "$sources" ]; then
+        info "sin casper/install-sources.yaml (layout antiguo); nada que actualizar"
+        return 0
+    fi
+    [ -f "$squashfs" ] ||
+        die "falta casper/$SQUASHFS_NAME; no se puede calcular su tamano para install-sources.yaml"
+    bytes="$(stat -c '%s' -- "$squashfs")"
+
+    tmp="$sources.mytical.tmp"
+    if ! awk -v squashfs="$SQUASHFS_NAME" -v bytes="$bytes" '
+        function trim(s) {
+            sub(/^[[:space:]]+/, "", s)
+            sub(/[[:space:]]+$/, "", s)
+            return s
+        }
+        function unquote(s,   first, last) {
+            if (length(s) >= 2) {
+                first = substr(s, 1, 1)
+                last = substr(s, length(s), 1)
+                if ((first == "\"" && last == "\"") || (first == "\047" && last == "\047"))
+                    s = substr(s, 2, length(s) - 2)
+            }
+            return s
+        }
+        function key_of(line,   rest) {
+            rest = line
+            sub(/^[[:space:]]*(-[[:space:]]+)?/, "", rest)
+            if (rest !~ /^[A-Za-z0-9_.-]+[[:space:]]*:/)
+                return ""
+            return trim(substr(rest, 1, index(rest, ":") - 1))
+        }
+        function value_of(line,   rest) {
+            rest = line
+            sub(/^[[:space:]]*(-[[:space:]]+)?/, "", rest)
+            sub(/^[^:]*:/, "", rest)
+            return unquote(trim(rest))
+        }
+        function indent_of(line) {
+            match(line, /^[[:space:]]*/)
+            return RLENGTH
+        }
+        {
+            line[NR] = $0
+            if ($0 ~ /^[[:space:]]*-[[:space:]]/) {
+                indent = indent_of($0)
+                if (dashes == 0 || indent < min_indent)
+                    min_indent = indent
+                dashes++
+            }
+        }
+        END {
+            n = NR
+            blocks = 0
+            if (dashes > 0) {
+                # Las entradas de la lista comparten la indentacion minima; las
+                # listas anidadas (description, name) quedan dentro del bloque.
+                for (i = 1; i <= n; i++) {
+                    if (line[i] ~ /^[[:space:]]*-[[:space:]]/ && indent_of(line[i]) == min_indent) {
+                        blocks++
+                        start[blocks] = i
+                    }
+                }
+            } else {
+                blocks = 1
+                start[1] = 1
+            }
+
+            for (b = 1; b <= blocks; b++) {
+                first = start[b]
+                last = (b < blocks ? start[b + 1] - 1 : n)
+                for (i = first; i <= last; i++) {
+                    key = key_of(line[i])
+                    if (key == "id") {
+                        id[b] = value_of(line[i])
+                    } else if (key == "path") {
+                        path_value[b] = value_of(line[i])
+                        path_line[b] = i
+                        path_count[b]++
+                    } else if (key == "size") {
+                        size_value[b] = value_of(line[i])
+                        size_line[b] = i
+                        size_count[b]++
+                    }
+                }
+            }
+
+            # Preferencia: entrada con id exacto "standard". Si el esquema no
+            # trae id, se acepta la unica entrada cuyo path apunte al squashfs.
+            selected = 0
+            matches = 0
+            for (b = 1; b <= blocks; b++)
+                if (id[b] == "standard") { selected = b; matches++ }
+            if (matches == 0) {
+                for (b = 1; b <= blocks; b++)
+                    if (path_value[b] == squashfs) { selected = b; matches++ }
+            }
+            if (matches == 0) {
+                printf("install-sources.yaml: no se encontro la entrada standard ni un path %s\n", squashfs) > "/dev/stderr"
+                exit 3
+            }
+            if (matches > 1) {
+                printf("install-sources.yaml: %d entradas candidatas; no se modifica\n", matches) > "/dev/stderr"
+                exit 4
+            }
+            if (path_count[selected] != 1 || size_count[selected] != 1) {
+                printf("install-sources.yaml: la entrada standard no declara un unico path/size\n") > "/dev/stderr"
+                exit 5
+            }
+
+            for (i = 1; i <= n; i++) {
+                if (i == path_line[selected]) {
+                    print substr(line[i], 1, index(line[i], "path") - 1) "path: " squashfs
+                } else if (i == size_line[selected]) {
+                    print substr(line[i], 1, index(line[i], "size") - 1) "size: " bytes
+                } else {
+                    print line[i]
+                }
+            }
+        }
+    ' "$sources" > "$tmp"; then
+        rm -f -- "$tmp"
+        die "no se pudo actualizar la entrada standard de casper/install-sources.yaml"
+    fi
+    mv -f -- "$tmp" "$sources"
+    info "casper/install-sources.yaml: standard -> $SQUASHFS_NAME ($bytes bytes)"
 }
 
 repack_squashfs() {
@@ -641,34 +862,38 @@ repack_squashfs() {
     rm -f -- "$NEW_SQUASHFS"
     mksquashfs "$ROOTFS_DIR" "$NEW_SQUASHFS" \
         -noappend -comp xz -b 1M -Xdict-size 100% -no-progress
-    update_casper_size
 }
 
 update_casper_metadata() {
-    local manifest="$ISO_TREE/casper/filesystem.manifest"
+    local manifest squashfs
 
     log "10/12 metadatos de casper"
     [ -d "$ISO_TREE/casper" ] || die "falta el arbol /casper en $ISO_TREE"
+    resolve_squashfs_from_tree ||
+        die "no hay casper/minimal.standard.squashfs ni casper/filesystem.squashfs en $ISO_TREE"
+
+    squashfs="$ISO_TREE/casper/$SQUASHFS_NAME"
+    manifest="$ISO_TREE/casper/$SQUASHFS_BASE.manifest"
 
     # El squashfs nuevo se mueve dentro del arbol extraido (mismo filesystem)
     # para que md5sum.txt describa exactamente lo que va a montar el remux.
-    if [ -f "$NEW_SQUASHFS" ]; then
-        mv -f -- "$NEW_SQUASHFS" "$ISO_TREE/casper/filesystem.squashfs"
-        NEW_SQUASHFS="$ISO_TREE/casper/filesystem.squashfs"
+    if [ -f "$NEW_SQUASHFS" ] && [ "$NEW_SQUASHFS" != "$squashfs" ]; then
+        mv -f -- "$NEW_SQUASHFS" "$squashfs"
+        NEW_SQUASHFS="$squashfs"
     fi
-    [ -f "$ISO_TREE/casper/filesystem.squashfs" ] ||
-        die "falta casper/filesystem.squashfs en $ISO_TREE"
+    [ -f "$squashfs" ] || die "falta casper/$SQUASHFS_NAME en $ISO_TREE"
 
     update_casper_size
+    update_install_sources
 
     if [ -x "$ROOTFS_DIR/usr/bin/dpkg-query" ]; then
         # shellcheck disable=SC2016
         chroot "$ROOTFS_DIR" dpkg-query -W -f='${Package} ${Version}\n' > "$manifest"
-        info "filesystem.manifest regenerado"
+        info "casper/$SQUASHFS_BASE.manifest regenerado"
     elif [ -s "$manifest" ]; then
-        info "filesystem.manifest conservado del rootfs base"
+        info "casper/$SQUASHFS_BASE.manifest conservado del rootfs base"
     else
-        warn "no se pudo regenerar filesystem.manifest (falta dpkg-query en el chroot)"
+        warn "no se pudo regenerar casper/$SQUASHFS_BASE.manifest (falta dpkg-query en el chroot)"
     fi
 
     (
@@ -678,27 +903,44 @@ update_casper_metadata() {
             LC_ALL=C sort -z |
             xargs -0 -r md5sum > md5sum.txt
     )
-    info "filesystem.size y md5sum.txt regenerados"
+    info "casper/$SQUASHFS_BASE.size, install-sources.yaml y md5sum.txt regenerados"
     # TODO(iso): comprobar md5sum.txt contra la ISO final exige ejecutar el
     # remux y montar la imagen. Sin ISO no se puede validar en este repo.
     info "TODO(iso): validacion de md5sum.txt contra la ISO final pendiente de build"
 }
 
 rebuild_iso() {
+    local -a maps=()
+    local squashfs size manifest sources
+
     log "11/12 remux de la ISO (conserva shim/GRUB/kernel)"
+    resolve_squashfs_from_tree ||
+        die "no hay casper/minimal.standard.squashfs ni casper/filesystem.squashfs en $ISO_TREE"
+
+    squashfs="$ISO_TREE/casper/$SQUASHFS_NAME"
+    size="$ISO_TREE/casper/$SQUASHFS_BASE.size"
+    manifest="$ISO_TREE/casper/$SQUASHFS_BASE.manifest"
+    sources="$ISO_TREE/casper/install-sources.yaml"
+
     [ -f "$NEW_SQUASHFS" ] || die "falta el squashfs nuevo: $NEW_SQUASHFS"
+    [ -f "$squashfs" ] || die "falta casper/$SQUASHFS_NAME en $ISO_TREE"
     [ -f "$ISO_TREE/md5sum.txt" ] || die "falta $ISO_TREE/md5sum.txt"
     mkdir -p -- "$(dirname -- "$OUT")"
     rm -f -- "$OUT"
 
-    local -a maps=(
-        -map "$NEW_SQUASHFS" /casper/filesystem.squashfs
-        -map "$ISO_TREE/casper/filesystem.size" /casper/filesystem.size
+    maps=(
+        -map "$squashfs" "/casper/$SQUASHFS_NAME"
+        -map "$size" "/casper/$SQUASHFS_BASE.size"
         -map "$ISO_TREE/md5sum.txt" /md5sum.txt
     )
-    if [ -f "$ISO_TREE/casper/filesystem.manifest" ]; then
-        maps+=(-map "$ISO_TREE/casper/filesystem.manifest" /casper/filesystem.manifest)
+    if [ -f "$manifest" ]; then
+        maps+=(-map "$manifest" "/casper/$SQUASHFS_BASE.manifest")
     fi
+    if [ -f "$sources" ]; then
+        maps+=(-map "$sources" /casper/install-sources.yaml)
+    fi
+
+    info "squashfs: /casper/$SQUASHFS_NAME + $SQUASHFS_BASE.size/manifest"
 
     xorriso -indev "$ISO" -outdev "$OUT" -boot_image any keep \
         "${maps[@]}" \
@@ -746,6 +988,7 @@ main() {
     if [ "$CHECK_ONLY" -eq 1 ]; then
         log "check OK"
         info "ISO:   $ISO"
+        info "Casper: $SQUASHFS_NAME"
         info "Repo:  ${REPO:-(ninguno; obligatorio en build)}"
         info "Salida prevista: $OUT"
         exit 0

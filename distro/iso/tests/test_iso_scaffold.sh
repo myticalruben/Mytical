@@ -229,10 +229,16 @@ for conf in "$CALAMARES"/modules/*.conf; do
     fi
 done
 
-if grep -Fq '/cdrom/casper/filesystem.squashfs' "$CALAMARES/modules/unpackfs.conf"; then
-    pass "unpackfs.conf usa el squashfs de casper"
+if grep -Fq '/cdrom/casper/minimal.standard.squashfs' "$CALAMARES/modules/unpackfs.conf"; then
+    pass "unpackfs.conf apunta a minimal.standard.squashfs"
 else
-    fail "unpackfs.conf no apunta a /cdrom/casper/filesystem.squashfs"
+    fail "unpackfs.conf no apunta a /cdrom/casper/minimal.standard.squashfs"
+fi
+
+if grep -Fq '/cdrom/casper/filesystem.squashfs' "$CALAMARES/modules/unpackfs.conf"; then
+    fail "unpackfs.conf sigue apuntando a filesystem.squashfs"
+else
+    pass "unpackfs.conf no hardcodea filesystem.squashfs"
 fi
 
 if grep -Eq '^efiBootLoader:[[:space:]]*"grub"' "$CALAMARES/modules/bootloader.conf"; then
@@ -301,11 +307,20 @@ else
     fail "BUILD_IMPLEMENTED no es 1"
 fi
 
-for function_name in install_mytical_packages apply_branding update_casper_metadata; do
+for function_name in install_mytical_packages apply_branding update_casper_size \
+    update_install_sources update_casper_metadata rebuild_iso; do
     if grep -Eq "^${function_name}\(\)" "$REMASTER"; then
         pass "remaster.sh define $function_name()"
     else
         fail "remaster.sh no define $function_name()"
+    fi
+done
+
+for squashfs in minimal.standard.squashfs filesystem.squashfs; do
+    if grep -Fq "$squashfs" "$REMASTER"; then
+        pass "remaster.sh contempla $squashfs"
+    else
+        fail "remaster.sh no contempla $squashfs"
     fi
 done
 
@@ -334,88 +349,195 @@ else
     fail "apply_branding no escribe un os-release Mytical"
 fi
 
-if grep -Fq 'filesystem.size' "$REMASTER" &&
+if grep -Fq 'SQUASHFS_BASE.size' "$REMASTER" &&
+   grep -Fq 'install-sources.yaml' "$REMASTER" &&
    grep -Fq 'md5sum.txt' "$REMASTER"; then
-    pass "update_casper_metadata toca size y md5sum"
+    pass "update_casper_metadata toca el .size, install-sources.yaml y md5sum"
 else
-    fail "update_casper_metadata no regenera size/md5sum"
+    fail "update_casper_metadata no regenera size/install-sources/md5sum"
 fi
 
 # ---------------------------------------------------------------------------
-# 7. --dry-run con ISO falsa: no debe tocar work/
+# 7. Deteccion del layout de casper: minimal.standard (26.04) y filesystem
 # ---------------------------------------------------------------------------
 
-stub_bin="$TMP_ROOT/stub-bin"
-mkdir -p "$stub_bin"
+# Stub de xorriso que devuelve el listing pedido; mksquashfs no hace nada y
+# unsquashfs solo registra el squashfs elegido. Nada real se ejecuta.
+make_iso_stubs() {
+    local dir="$1"
+    shift
+    mkdir -p "$dir"
+    {
+        printf '#!/usr/bin/env bash\n'
+        printf 'printf "%%s\\n"'
+        printf ' %q' "$@"
+        printf '\n'
+    } > "$dir/xorriso"
+    cat > "$dir/mksquashfs" <<'STUB'
+#!/usr/bin/env bash
+exit 0
+STUB
+    cat > "$dir/unsquashfs" <<'STUB'
+#!/usr/bin/env bash
+printf 'unsquashfs %s\n' "$*" >> "${STUB_LOG:-/dev/null}"
+exit 0
+STUB
+    chmod +x "$dir/xorriso" "$dir/mksquashfs" "$dir/unsquashfs"
+}
 
-cat > "$stub_bin/xorriso" <<'EOF'
-#!/usr/bin/env bash
-printf '/casper\n/casper/filesystem.squashfs\n/casper/vmlinuz\n'
-EOF
-cat > "$stub_bin/mksquashfs" <<'EOF'
-#!/usr/bin/env bash
-exit 0
-EOF
-cat > "$stub_bin/unsquashfs" <<'EOF'
-#!/usr/bin/env bash
-exit 0
-EOF
-chmod +x "$stub_bin/xorriso" "$stub_bin/mksquashfs" "$stub_bin/unsquashfs"
+new_listing=(/casper /casper/minimal.standard.squashfs /casper/minimal.standard.size
+    /casper/minimal.standard.manifest /casper/install-sources.yaml /casper/vmlinuz)
+old_listing=(/casper /casper/filesystem.squashfs /casper/filesystem.size
+    /casper/filesystem.manifest /casper/vmlinuz)
+make_iso_stubs "$TMP_ROOT/stub-new" "${new_listing[@]}"
+make_iso_stubs "$TMP_ROOT/stub-old" "${old_listing[@]}"
+
+# Resuelve el layout con el mismo codigo que usa remaster.sh --check.
+probe_layout() {
+    LISTING="$1" bash -c '
+        source "$1"
+        resolve_squashfs_from_listing "$LISTING" || exit 1
+        printf "%s|%s\n" "$SQUASHFS_NAME" "$SQUASHFS_BASE"
+    ' _ "$REMASTER"
+}
+
+new_layout_out="$(probe_layout "$(printf '%s\n' "${new_listing[@]}")")"
+if [ "$new_layout_out" = "minimal.standard.squashfs|minimal.standard" ]; then
+    pass "layout nuevo se detecta como minimal.standard.squashfs"
+else
+    fail "layout nuevo mal detectado: $new_layout_out"
+fi
+
+old_layout_out="$(probe_layout "$(printf '%s\n' "${old_listing[@]}")")"
+if [ "$old_layout_out" = "filesystem.squashfs|filesystem" ]; then
+    pass "layout viejo se detecta como filesystem.squashfs"
+else
+    fail "layout viejo mal detectado: $old_layout_out"
+fi
+
+both_layout_out="$(probe_layout "$(printf '%s\n' "${new_listing[@]}" "${old_listing[@]}")")"
+if [ "$both_layout_out" = "minimal.standard.squashfs|minimal.standard" ]; then
+    pass "con ambos squashfs se prefiere minimal.standard.squashfs"
+else
+    fail "ambos layouts resueltos mal: $both_layout_out"
+fi
+
+probe_layout "$(printf '%s\n' '/casper' '/casper/otro.squashfs')" >/dev/null 2>&1
+if [ $? -ne 0 ]; then
+    pass "un listing sin squashfs conocidos falla"
+else
+    fail "un listing desconocido no falla"
+fi
+
+# unsquash_rootfs extrae el squashfs elegido, no un nombre hardcodeado.
+for layout in new old; do
+    case "$layout" in
+        new)
+            unsquash_tree="$TMP_ROOT/iso-unsquash-new"
+            expected_squashfs="minimal.standard.squashfs"
+            ;;
+        old)
+            unsquash_tree="$TMP_ROOT/iso-unsquash-old"
+            expected_squashfs="filesystem.squashfs"
+            ;;
+    esac
+    mkdir -p "$unsquash_tree/casper"
+    printf 'rootfs de prueba\n' > "$unsquash_tree/casper/$expected_squashfs"
+    STUB_LOG="$TMP_ROOT/unsquash-$layout.log" PATH="$TMP_ROOT/stub-new:$PATH" \
+        bash -c '
+            source "$1"
+            ISO_TREE="$2"
+            ROOTFS_DIR="$3"
+            unsquash_rootfs
+        ' _ "$REMASTER" "$unsquash_tree" "$TMP_ROOT/rootfs-unsquash-$layout" \
+        > "$TMP_ROOT/unsquash-$layout.out" 2>&1
+    if [ $? -eq 0 ] &&
+       grep -qF "casper/$expected_squashfs" "$TMP_ROOT/unsquash-$layout.log"; then
+        pass "unsquash_rootfs extrae casper/$expected_squashfs ($layout)"
+    else
+        fail "unsquash_rootfs no extrae casper/$expected_squashfs ($layout)"
+    fi
+done
+
+# ---------------------------------------------------------------------------
+# 8. --dry-run y --check con ISO falsa: detectan el layout y no tocan work/
+# ---------------------------------------------------------------------------
+
+snapshot_work() {
+    if [ -d "$ISO_DIR/work" ]; then
+        find "$ISO_DIR/work" -printf '%P|%y|%s|%T@\n' | LC_ALL=C sort
+    else
+        printf '__NO_WORK__\n'
+    fi
+}
 
 fake_iso="$TMP_ROOT/ubuntu-26.04-desktop-amd64.iso"
 if truncate -s 1610612736 "$fake_iso"; then
-    snapshot_work() {
-        if [ -d "$ISO_DIR/work" ]; then
-            find "$ISO_DIR/work" -printf '%P|%y|%s|%T@\n' | LC_ALL=C sort
-        else
-            printf '__NO_WORK__\n'
-        fi
-    }
-
     work_snapshot_before="$(snapshot_work)"
-    dry_iso_out="$(PATH="$stub_bin:$PATH" "$REMASTER" --dry-run --iso "$fake_iso" 2>&1)"
-    dry_iso_status=$?
-    work_snapshot_after="$(snapshot_work)"
+    for layout in new old; do
+        case "$layout" in
+            new)
+                stub_bin="$TMP_ROOT/stub-new"
+                expected_squashfs="minimal.standard.squashfs"
+                unexpected_squashfs="filesystem.squashfs"
+                ;;
+            old)
+                stub_bin="$TMP_ROOT/stub-old"
+                expected_squashfs="filesystem.squashfs"
+                unexpected_squashfs="minimal.standard.squashfs"
+                ;;
+        esac
 
-    if [ "$dry_iso_status" -eq 0 ]; then
-        pass "--dry-run con ISO falsa sale 0"
-    else
-        fail "--dry-run con ISO falsa sale $dry_iso_status: $dry_iso_out"
-    fi
+        dry_iso_out="$(PATH="$stub_bin:$PATH" "$REMASTER" --dry-run --iso "$fake_iso" 2>&1)"
+        dry_iso_status=$?
 
-    if grep -qF 'Plan de remaster' <<<"$dry_iso_out"; then
-        pass "--dry-run imprime el plan"
-    else
-        fail "--dry-run no imprime el plan"
-    fi
-
-    for needle in 'chroot: APT' 'md5sum.txt' 'se conservan' 'Secure Boot'; do
-        if grep -qF -- "$needle" <<<"$dry_iso_out"; then
-            pass "el plan menciona $needle"
+        if [ "$dry_iso_status" -eq 0 ]; then
+            pass "--dry-run con ISO falsa sale 0 ($layout)"
         else
-            fail "el plan no menciona $needle"
+            fail "--dry-run con ISO falsa sale $dry_iso_status ($layout): $dry_iso_out"
+        fi
+
+        if grep -qF 'Plan de remaster' <<<"$dry_iso_out"; then
+            pass "--dry-run imprime el plan ($layout)"
+        else
+            fail "--dry-run no imprime el plan ($layout)"
+        fi
+
+        if grep -qF "casper/$expected_squashfs" <<<"$dry_iso_out"; then
+            pass "el plan usa casper/$expected_squashfs ($layout)"
+        else
+            fail "el plan no usa casper/$expected_squashfs ($layout)"
+        fi
+
+        if grep -qF "casper/$unexpected_squashfs" <<<"$dry_iso_out"; then
+            fail "el plan menciona el squashfs equivocado ($layout)"
+        else
+            pass "el plan no menciona casper/$unexpected_squashfs ($layout)"
+        fi
+
+        for needle in 'chroot: APT' 'md5sum.txt' 'install-sources.yaml' 'se conservan' 'Secure Boot'; do
+            if grep -qF -- "$needle" <<<"$dry_iso_out"; then
+                pass "el plan menciona $needle ($layout)"
+            else
+                fail "el plan no menciona $needle ($layout)"
+            fi
+        done
+
+        check_iso_out="$(PATH="$stub_bin:$PATH" "$REMASTER" --check --iso "$fake_iso" 2>&1)"
+        check_iso_status=$?
+        if [ "$check_iso_status" -eq 0 ] &&
+           grep -qF 'check OK' <<<"$check_iso_out" &&
+           grep -qF "Casper: $expected_squashfs" <<<"$check_iso_out"; then
+            pass "--check valida el layout $layout sin escribir"
+        else
+            fail "--check falla con el layout $layout: $check_iso_out"
         fi
     done
 
-    if [ "$work_snapshot_before" = "$work_snapshot_after" ]; then
-        pass "--dry-run no toca work/"
-    else
-        fail "--dry-run modifico work/"
-    fi
-
-    check_iso_out="$(PATH="$stub_bin:$PATH" "$REMASTER" --check --iso "$fake_iso" 2>&1)"
-    check_iso_status=$?
-    if [ "$check_iso_status" -eq 0 ] &&
-       grep -qF 'check OK' <<<"$check_iso_out"; then
-        pass "--check con ISO falsa valida sin escribir"
-    else
-        fail "--check con ISO falsa falla: $check_iso_out"
-    fi
-
     if [ "$work_snapshot_before" = "$(snapshot_work)" ]; then
-        pass "--check no toca work/"
+        pass "--dry-run/--check no tocan work/"
     else
-        fail "--check modifico work/"
+        fail "--dry-run/--check modificaron work/"
     fi
 else
     skip "no se pudo crear una ISO dispersa de prueba"
