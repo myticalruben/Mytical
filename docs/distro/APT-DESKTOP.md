@@ -1,3 +1,6 @@
+> **Superseded por ADR 0010:** V1.1 incluye Nix; esta auditoría APT queda como
+> referencia de lo que Ubuntu 26.04 trae y de por qué no usamos su Hyprland.
+
 # Escritorio APT para la ISO V1.1
 
 ## Auditoría real de Ubuntu 26.04 (10.0.0.166)
