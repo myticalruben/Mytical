@@ -154,3 +154,9 @@ https://raw.githubusercontent.com/myticalruben/Mytical/main/distro/apt/snapshots
 
 `apt-get update` y `apt-cache policy` fueron verificados contra esa URL en la
 VM limpia `10.0.0.166`.
+
+
+## Notas de release
+
+Ver [`docs/releases/`](../docs/releases/). Cada versión incluye sus
+características agregadas, cambiadas, corregidas y removidas.

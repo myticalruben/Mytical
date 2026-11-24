@@ -44,3 +44,7 @@
 - Los wallpapers personales no se distribuyen.
 - La ISO V1.1 queda fuera de esta entrega.
 - El repo APT usa una clave efímera en tests; producción requiere clave real.
+
+## Notas de release
+
+Cada versión publicada tiene notas con Agregado/Cambiado/Corregido/Removido en `docs/releases/`.
