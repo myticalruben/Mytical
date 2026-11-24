@@ -227,3 +227,10 @@
 - ADR 0009: V1.1 sin Nix; V2 migrará a Nix.
 - Auditoría: Hyprland 0.53 no sirve para Lua; Quickshell/awww ausentes.
 - Siguiente: empaquetar Hyprland 0.55.4 y resolver Quickshell/awww.
+
+## 2026-11-24 — Nix en la ISO
+
+- El owner aprobó incluir Nix en V1.1.
+- ADR 0010 supersede el APT-only de ADR 0009.
+- Se cancela el empaquetado APT de Hyprland/Quickshell/awww para esta release.
+- Siguiente: integrar el cierre Nix y el perfil Home Manager en el remaster.
