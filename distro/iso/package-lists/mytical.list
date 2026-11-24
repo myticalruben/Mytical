@@ -48,7 +48,6 @@ policykit-1-gnome
 zsh
 direnv
 plymouth
-fonts-nerd-jetbrains-mono
 
 # Pendiente de empaquetar o decidir; no activar hasta resolver el bloqueo:
 #   quickshell      -> no esta en el archive de Ubuntu 26.04
