@@ -625,7 +625,7 @@ stage_calamares() {
     [ -n "$SQUASHFS_NAME" ] ||
         die "SQUASHFS_NAME sin resolver; no se puede configurar unpackfs.conf"
     sed -i -E \
-        "s|^([[:space:]]*source:[[:space:]]*\")/cdrom/casper/[^\"]*\"|\1/cdrom/casper/$SQUASHFS_NAME\"|" \
+        "s|^([[:space:]]*-[[:space:]]*source:[[:space:]]*\")/cdrom/casper/[^\"]*\"|\1/cdrom/casper/$SQUASHFS_NAME\"|" \
         "$unpackfs"
 }
 

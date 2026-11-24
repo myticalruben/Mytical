@@ -422,11 +422,10 @@ else
     fail "ambos layouts resueltos mal: $both_layout_out"
 fi
 
-probe_layout "$(printf '%s\n' '/casper' '/casper/otro.squashfs')" >/dev/null 2>&1
-if [ $? -ne 0 ]; then
-    pass "un listing sin squashfs conocidos falla"
-else
+if probe_layout "$(printf '%s\n' '/casper' '/casper/otro.squashfs')" >/dev/null 2>&1; then
     fail "un listing desconocido no falla"
+else
+    pass "un listing sin squashfs conocidos falla"
 fi
 
 # unsquash_rootfs extrae el squashfs elegido, no un nombre hardcodeado.
@@ -443,15 +442,14 @@ for layout in new old; do
     esac
     mkdir -p "$unsquash_tree/casper"
     printf 'rootfs de prueba\n' > "$unsquash_tree/casper/$expected_squashfs"
-    STUB_LOG="$TMP_ROOT/unsquash-$layout.log" PATH="$TMP_ROOT/stub-new:$PATH" \
+    if STUB_LOG="$TMP_ROOT/unsquash-$layout.log" PATH="$TMP_ROOT/stub-new:$PATH" \
         bash -c '
             source "$1"
             ISO_TREE="$2"
             ROOTFS_DIR="$3"
             unsquash_rootfs
         ' _ "$REMASTER" "$unsquash_tree" "$TMP_ROOT/rootfs-unsquash-$layout" \
-        > "$TMP_ROOT/unsquash-$layout.out" 2>&1
-    if [ $? -eq 0 ] &&
+        > "$TMP_ROOT/unsquash-$layout.out" 2>&1 &&
        grep -qF "casper/$expected_squashfs" "$TMP_ROOT/unsquash-$layout.log"; then
         pass "unsquash_rootfs extrae casper/$expected_squashfs ($layout)"
     else
@@ -539,12 +537,22 @@ if truncate -s 1610612736 "$fake_iso"; then
     else
         fail "--dry-run/--check modificaron work/"
     fi
+
+    # Un casper sin ninguno de los dos squashfs conocidos no debe pasar.
+    make_iso_stubs "$TMP_ROOT/stub-unknown" /casper /casper/otro.squashfs /casper/vmlinuz
+    unknown_out="$(PATH="$TMP_ROOT/stub-unknown:$PATH" "$REMASTER" --check --iso "$fake_iso" 2>&1)"
+    unknown_status=$?
+    if [ "$unknown_status" -ne 0 ] && grep -qi 'squashfs' <<<"$unknown_out"; then
+        pass "--check falla con un layout de casper desconocido"
+    else
+        fail "--check no falla con un layout desconocido: $unknown_out"
+    fi
 else
     skip "no se pudo crear una ISO dispersa de prueba"
 fi
 
 # ---------------------------------------------------------------------------
-# 8. install_mytical_packages(): repo obligatorio y Signed-By
+# 9. install_mytical_packages(): repo obligatorio y Signed-By
 # ---------------------------------------------------------------------------
 
 missing_repo_out="$(bash -c '
@@ -655,7 +663,7 @@ else
 fi
 
 # ---------------------------------------------------------------------------
-# 9. apply_branding(): os-release, wallpapers CC0 y SDDM
+# 10. apply_branding(): os-release, wallpapers CC0 y SDDM
 # ---------------------------------------------------------------------------
 
 brand_root="$TMP_ROOT/rootfs-brand"
@@ -724,7 +732,7 @@ else
 fi
 
 # ---------------------------------------------------------------------------
-# 10. update_casper_metadata(): filesystem.size y md5sum.txt
+# 11. update_casper_metadata(): layout viejo (filesystem.*)
 # ---------------------------------------------------------------------------
 
 meta_root="$TMP_ROOT/rootfs-meta"
@@ -747,9 +755,9 @@ bash -c '
 meta_status=$?
 
 if [ "$meta_status" -eq 0 ]; then
-    pass "update_casper_metadata completa"
+    pass "update_casper_metadata completa (layout viejo)"
 else
-    fail "update_casper_metadata falla: $(cat "$TMP_ROOT/meta.out")"
+    fail "update_casper_metadata falla (layout viejo): $(cat "$TMP_ROOT/meta.out")"
 fi
 
 expected_size="$(du -sx --block-size=1 "$meta_root" | cut -f1)"
@@ -776,9 +784,9 @@ else
 fi
 
 if ( cd "$meta_iso" && md5sum -c md5sum.txt >/dev/null 2>&1 ); then
-    pass "md5sum -c pasa sobre el arbol extraido"
+    pass "md5sum -c pasa sobre el arbol extraido (layout viejo)"
 else
-    fail "md5sum -c falla sobre el arbol extraido"
+    fail "md5sum -c falla sobre el arbol extraido (layout viejo)"
 fi
 
 if ! grep -q 'md5sum.txt' "$meta_iso/md5sum.txt"; then
@@ -794,13 +802,290 @@ else
 fi
 
 if [ ! -e "$meta_new" ]; then
-    pass "el squashfs nuevo se mueve al arbol de la ISO"
+    pass "el squashfs nuevo se mueve al arbol de la ISO (layout viejo)"
 else
-    fail "el squashfs nuevo no se movio al arbol de la ISO"
+    fail "el squashfs nuevo no se movio al arbol de la ISO (layout viejo)"
+fi
+
+if grep -q 'sin casper/install-sources.yaml' "$TMP_ROOT/meta.out"; then
+    pass "el layout viejo tolera la ausencia de install-sources.yaml"
+else
+    fail "el layout viejo no informa la ausencia de install-sources.yaml"
+fi
+
+# stub de remux: registra los -map sin escribir ninguna ISO
+remux_stub="$TMP_ROOT/stub-remux"
+mkdir -p "$remux_stub"
+cat > "$remux_stub/xorriso" <<'EOF'
+#!/usr/bin/env bash
+printf 'xorriso %s\n' "$*" >> "$STUB_LOG"
+exit 0
+EOF
+chmod +x "$remux_stub/xorriso"
+
+run_remux() {
+    local tree="$1" out="$2" log="$3" squashfs="$4"
+    STUB_LOG="$log" PATH="$remux_stub:$PATH" bash -c '
+        source "$1"
+        ISO="$2"
+        OUT="$3"
+        ISO_TREE="$4"
+        NEW_SQUASHFS="$5/casper/$6"
+        rebuild_iso
+    ' _ "$REMASTER" "$TMP_ROOT/ubuntu-26.04-desktop-amd64.iso" "$out" "$tree" "$tree" "$squashfs" \
+        > "$log.out" 2>&1
+}
+
+if run_remux "$meta_iso" "$TMP_ROOT/out-old.iso" "$TMP_ROOT/remux-old.log" filesystem.squashfs &&
+   grep -qF -- "-map $meta_iso/casper/filesystem.squashfs /casper/filesystem.squashfs" \
+       "$TMP_ROOT/remux-old.log" &&
+   grep -qF -- "-map $meta_iso/casper/filesystem.size /casper/filesystem.size" \
+       "$TMP_ROOT/remux-old.log" &&
+   grep -qF -- "-map $meta_iso/md5sum.txt /md5sum.txt" "$TMP_ROOT/remux-old.log"; then
+    pass "el remux mapea /casper/filesystem.squashfs y sus metadatos"
+else
+    fail "el remux no mapea el layout viejo: $(cat "$TMP_ROOT/remux-old.log.out")"
 fi
 
 # ---------------------------------------------------------------------------
-# 11. Documentacion
+# 12. update_casper_metadata(): layout nuevo (minimal.standard.*)
+# ---------------------------------------------------------------------------
+
+meta2_root="$TMP_ROOT/rootfs-meta2"
+meta2_iso="$TMP_ROOT/iso-meta2"
+meta2_new="$TMP_ROOT/new-minimal-standard.squashfs"
+meta2_old_size=4711
+mkdir -p "$meta2_root/etc" "$meta2_root/usr/bin" \
+    "$meta2_iso/casper" "$meta2_iso/boot/grub"
+printf 'rootfs nuevo\n' > "$meta2_root/etc/marker"
+: > "$meta2_root/usr/bin/dpkg-query"
+chmod +x "$meta2_root/usr/bin/dpkg-query"
+printf 'vmlinuz\n' > "$meta2_iso/casper/vmlinuz"
+printf 'squashfs standard viejo\n' > "$meta2_iso/casper/minimal.standard.squashfs"
+printf '%s\n' "$meta2_old_size" > "$meta2_iso/casper/minimal.standard.size"
+printf 'paquete viejo 1.0\n' > "$meta2_iso/casper/minimal.standard.manifest"
+printf 'squashfs variante idioma\n' > "$meta2_iso/casper/minimal.standard.en.squashfs"
+printf 'grub\n' > "$meta2_iso/boot/grub/grub.cfg"
+cat > "$meta2_iso/casper/install-sources.yaml" <<'EOF'
+# Fuentes de instalacion (subiquity/casper)
+sources:
+  - id: standard
+    name:
+      en: Ubuntu Desktop
+    description:
+      en: imagen principal
+    path: minimal.standard.squashfs
+    size: 4911607808
+    default: true
+  - id: standard.en
+    path: minimal.standard.en.squashfs
+    size: 1234
+  - id: enhanced
+    path: minimal.enhanced.squashfs
+    size: 4321
+EOF
+printf 'squashfs standard nuevo\n' > "$meta2_new"
+
+meta_stub="$TMP_ROOT/stub-meta"
+mkdir -p "$meta_stub"
+cat > "$meta_stub/chroot" <<'EOF'
+#!/usr/bin/env bash
+case " $* " in
+    *" dpkg-query "*) printf 'casper 1.0\ncalamares 3.3\n' ;;
+esac
+exit 0
+EOF
+chmod +x "$meta_stub/chroot"
+
+PATH="$meta_stub:$PATH" bash -c '
+    source "$1"
+    ROOTFS_DIR="$2"
+    ISO_TREE="$3"
+    NEW_SQUASHFS="$4"
+    update_casper_metadata
+' _ "$REMASTER" "$meta2_root" "$meta2_iso" "$meta2_new" > "$TMP_ROOT/meta2.out" 2>&1
+meta2_status=$?
+
+if [ "$meta2_status" -eq 0 ]; then
+    pass "update_casper_metadata completa (layout nuevo)"
+else
+    fail "update_casper_metadata falla (layout nuevo): $(cat "$TMP_ROOT/meta2.out")"
+fi
+
+expected2_size="$(du -sx --block-size=1 "$meta2_root" | cut -f1)"
+actual2_size="$(cat "$meta2_iso/casper/minimal.standard.size" 2>/dev/null || true)"
+if [ "$actual2_size" = "$expected2_size" ]; then
+    pass "minimal.standard.size coincide con du del rootfs"
+else
+    fail "minimal.standard.size=$actual2_size, esperado=$expected2_size"
+fi
+
+if [ ! -e "$meta2_iso/casper/filesystem.size" ] &&
+   [ ! -e "$meta2_iso/casper/filesystem.manifest" ]; then
+    pass "el layout nuevo no escribe filesystem.size/manifest"
+else
+    fail "el layout nuevo escribio metadatos del layout viejo"
+fi
+
+if [ ! -e "$meta2_new" ]; then
+    pass "el squashfs nuevo reemplaza a minimal.standard.squashfs"
+else
+    fail "el squashfs nuevo no se movio al arbol de la ISO (layout nuevo)"
+fi
+
+if grep -qx 'squashfs standard nuevo' "$meta2_iso/casper/minimal.standard.squashfs"; then
+    pass "se reemplaza el squashfs elegido"
+else
+    fail "no se reemplazo casper/minimal.standard.squashfs"
+fi
+
+if grep -qx 'casper 1.0' "$meta2_iso/casper/minimal.standard.manifest" &&
+   grep -qx 'calamares 3.3' "$meta2_iso/casper/minimal.standard.manifest" &&
+   ! grep -q 'paquete viejo' "$meta2_iso/casper/minimal.standard.manifest"; then
+    pass "minimal.standard.manifest se regenera con dpkg-query"
+else
+    fail "minimal.standard.manifest no se regenero"
+fi
+
+squashfs2_size="$(stat -c '%s' "$meta2_iso/casper/minimal.standard.squashfs")"
+sources2="$meta2_iso/casper/install-sources.yaml"
+if grep -qF 'path: minimal.standard.squashfs' "$sources2" &&
+   grep -qx "    size: $squashfs2_size" "$sources2"; then
+    pass "install-sources.yaml apunta al squashfs y a su tamano comprimido"
+else
+    fail "install-sources.yaml no actualiza path/size del standard"
+fi
+
+if grep -qx '    size: 1234' "$sources2" &&
+   grep -qx '    size: 4321' "$sources2" &&
+   grep -qx '    path: minimal.standard.en.squashfs' "$sources2" &&
+   grep -qx '    path: minimal.enhanced.squashfs' "$sources2"; then
+    pass "las variantes de idioma/enhanced de install-sources.yaml quedan intactas"
+else
+    fail "install-sources.yaml modifico variantes que no eran standard"
+fi
+
+if ! grep -q "size: 4911607808" "$sources2"; then
+    pass "el size viejo de 4911607808 ya no aparece"
+else
+    fail "install-sources.yaml conserva el size del squashfs viejo"
+fi
+
+if grep -q '  ./casper/minimal.standard.squashfs$' "$meta2_iso/md5sum.txt" &&
+   ! grep -q '  ./casper/filesystem.squashfs$' "$meta2_iso/md5sum.txt" &&
+   ( cd "$meta2_iso" && md5sum -c md5sum.txt >/dev/null 2>&1 ); then
+    pass "md5sum.txt describe minimal.standard.squashfs y pasa md5sum -c"
+else
+    fail "md5sum.txt no describe el layout nuevo"
+fi
+
+if python3 -c 'import yaml' >/dev/null 2>&1; then
+    if python3 - "$sources2" "$squashfs2_size" <<'PY'
+import os
+import sys
+import yaml
+
+with open(sys.argv[1], encoding="utf-8") as handle:
+    data = yaml.safe_load(handle)
+entries = data["sources"]
+assert [entry["id"] for entry in entries] == ["standard", "standard.en", "enhanced"]
+assert entries[0]["path"] == "minimal.standard.squashfs"
+assert entries[0]["size"] == int(sys.argv[2])
+assert entries[1]["path"] == "minimal.standard.en.squashfs"
+assert entries[1]["size"] == 1234
+assert entries[2]["path"] == "minimal.enhanced.squashfs"
+assert entries[2]["size"] == 4321
+assert entries[0]["name"]["en"] == "Ubuntu Desktop"
+assert os.path.exists(os.path.join(os.path.dirname(sys.argv[1]), "minimal.standard.manifest"))
+PY
+    then
+        pass "install-sources.yaml sigue siendo YAML valido tras actualizarlo"
+    else
+        fail "install-sources.yaml quedo invalido tras actualizarlo"
+    fi
+else
+    skip "PyYAML no esta instalado; no se reparsea install-sources.yaml"
+fi
+
+# Una entrada standard ausente debe fallar claro y no tocar el fichero.
+broken_iso="$TMP_ROOT/iso-meta-broken"
+mkdir -p "$broken_iso/casper"
+printf 'squashfs\n' > "$broken_iso/casper/minimal.standard.squashfs"
+cat > "$broken_iso/casper/install-sources.yaml" <<'EOF'
+sources:
+  - id: enhanced
+    path: minimal.enhanced.squashfs
+    size: 4321
+EOF
+broken_before="$(cat "$broken_iso/casper/install-sources.yaml")"
+bash -c '
+    source "$1"
+    ROOTFS_DIR="$2"
+    ISO_TREE="$3"
+    NEW_SQUASHFS="$4"
+    update_casper_metadata
+' _ "$REMASTER" "$meta2_root" "$broken_iso" \
+    "$broken_iso/casper/minimal.standard.squashfs" > "$TMP_ROOT/broken.out" 2>&1
+broken_status=$?
+if [ "$broken_status" -ne 0 ] &&
+   grep -q 'install-sources.yaml' "$TMP_ROOT/broken.out" &&
+   [ "$broken_before" = "$(cat "$broken_iso/casper/install-sources.yaml")" ]; then
+    pass "sin entrada standard, install-sources.yaml falla y queda intacto"
+else
+    fail "install-sources.yaml sin standard no falla claro"
+fi
+
+if run_remux "$meta2_iso" "$TMP_ROOT/out-new.iso" "$TMP_ROOT/remux-new.log" \
+       minimal.standard.squashfs &&
+   grep -qF -- "-map $meta2_iso/casper/minimal.standard.squashfs /casper/minimal.standard.squashfs" \
+       "$TMP_ROOT/remux-new.log" &&
+   grep -qF -- "-map $meta2_iso/casper/minimal.standard.size /casper/minimal.standard.size" \
+       "$TMP_ROOT/remux-new.log" &&
+   grep -qF -- "-map $meta2_iso/casper/minimal.standard.manifest /casper/minimal.standard.manifest" \
+       "$TMP_ROOT/remux-new.log" &&
+   grep -qF -- "-map $meta2_iso/casper/install-sources.yaml /casper/install-sources.yaml" \
+       "$TMP_ROOT/remux-new.log" &&
+   ! grep -qF 'filesystem.squashfs' "$TMP_ROOT/remux-new.log"; then
+    pass "el remux mapea /casper/minimal.standard.squashfs y sus metadatos"
+else
+    fail "el remux no mapea el layout nuevo: $(cat "$TMP_ROOT/remux-new.log.out")"
+fi
+
+# ---------------------------------------------------------------------------
+# 13. stage_calamares(): unpackfs sigue al squashfs detectado
+# ---------------------------------------------------------------------------
+
+for layout in new old; do
+    case "$layout" in
+        new)
+            expected_squashfs="minimal.standard.squashfs"
+            expected_base="minimal.standard"
+            ;;
+        old)
+            expected_squashfs="filesystem.squashfs"
+            expected_base="filesystem"
+            ;;
+    esac
+    cal_root="$TMP_ROOT/rootfs-cal-$layout"
+    mkdir -p "$cal_root"
+    if bash -c '
+        source "$1"
+        ROOTFS_DIR="$2"
+        SQUASHFS_NAME="$3"
+        SQUASHFS_BASE="$4"
+        stage_calamares
+    ' _ "$REMASTER" "$cal_root" "$expected_squashfs" "$expected_base" \
+        > "$TMP_ROOT/cal-$layout.out" 2>&1 &&
+       grep -qF "/cdrom/casper/$expected_squashfs" \
+           "$cal_root/etc/calamares/modules/unpackfs.conf"; then
+        pass "stage_calamares deja unpackfs con $expected_squashfs ($layout)"
+    else
+        fail "stage_calamares no ajusta unpackfs ($layout): $(cat "$TMP_ROOT/cal-$layout.out")"
+    fi
+done
+
+# ---------------------------------------------------------------------------
+# 14. Documentacion
 # ---------------------------------------------------------------------------
 
 readme="$ISO_DIR/README.md"
@@ -821,7 +1106,8 @@ for needle in 'Bloqueantes' 'Criterios de aceptación' 'Secure Boot' 'casper' 'C
 done
 
 for needle in 'install_mytical_packages' 'apply_branding' 'update_casper_metadata' \
-    'md5sum.txt' 'Signed-By' 'sin autoremove'; do
+    'md5sum.txt' 'Signed-By' 'sin autoremove' 'minimal.standard.squashfs' \
+    'install-sources.yaml'; do
     if grep -qF -- "$needle" "$DOC"; then
         pass "ISO.md documenta $needle"
     else
@@ -830,7 +1116,7 @@ for needle in 'install_mytical_packages' 'apply_branding' 'update_casper_metadat
 done
 
 # ---------------------------------------------------------------------------
-# 12. clean solo apunta a work/
+# 15. clean solo apunta a work/
 # ---------------------------------------------------------------------------
 
 clean_dry="$(make -C "$ISO_DIR" -n clean 2>&1)" || true
@@ -847,7 +1133,7 @@ else
 fi
 
 # ---------------------------------------------------------------------------
-# 13. shellcheck opcional (CI lo ejecuta sobre los .sh versionados)
+# 16. shellcheck opcional (CI lo ejecuta sobre los .sh versionados)
 # ---------------------------------------------------------------------------
 
 if command -v shellcheck >/dev/null 2>&1; then

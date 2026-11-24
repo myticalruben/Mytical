@@ -1,9 +1,10 @@
 # ISO V1.1 — alcance, decisiones y criterios
 
 **Estado:** pipeline implementado en `distro/iso/` y cubierto por tests
-locales. No se ha descargado ninguna ISO, no se ha ejecutado root, no se ha
-ejecutado `mksquashfs`/`xorriso` de verdad y no se ha construido ni publicado
-nada. El build real sigue pendiente de validación con ISO y QEMU.
+locales, con detección de los dos layouts de casper (26.04 y anteriores). No se
+ha descargado ninguna ISO, no se ha ejecutado root, no se ha ejecutado
+`mksquashfs`/`xorriso` de verdad y no se ha construido ni publicado nada. El
+build real sigue pendiente de validación con ISO y QEMU.
 
 **Objetivo:** remasterizar la ISO oficial de Ubuntu 26.04 LTS (resolute) con
 casper + Calamares, APT como dueño del escritorio y Nix fuera de la imagen.
@@ -51,32 +52,65 @@ No entra en V1.1:
 ISO oficial (ubuntu-26.04-desktop-amd64.iso)
   │  xorriso -osirrox -extract /
   ▼
-work/iso/  ── casper/filesystem.squashfs ── unsquashfs ──▶ work/rootfs/
-  │                                                           │
-  │                                        repo local ────────┤
-  │                                        chroot APT ────────┤
-  │                                        Calamares ─────────┤
-  │                                        branding ──────────┘
-  │                                                           │
-  │                                             mksquashfs -comp xz
-  │                                                           ▼
-  ├── update_casper_metadata: filesystem.size + manifest + md5sum.txt
+work/iso/casper/<SQUASHFS_NAME>     (minimal.standard.squashfs | filesystem.squashfs)
+  │  unsquashfs                                    ┌── repo local
+  ▼                                                ├── chroot APT
+work/rootfs/  ─────────────────────────────────────├── Calamares
+  │                                                └── branding
+  │  mksquashfs -comp xz
+  ▼
+work/rootfs.squashfs ──▶ update_casper_metadata:
+                            <base>.size + <base>.manifest
+                            install-sources.yaml (entrada standard)
+                            md5sum.txt
   │
-  └── xorriso -indev ... -outdev ... -boot_image any keep ── work/filesystem.squashfs
-          -map filesystem.squashfs /casper/filesystem.squashfs
-          -map filesystem.size     /casper/filesystem.size
-          -map filesystem.manifest /casper/filesystem.manifest
-          -map md5sum.txt          /md5sum.txt
-                                                               │
-                                                               ▼
-                                        work/mytical-26.04-amd64.iso + .sha256
+  └── xorriso -indev ... -outdev ... -boot_image any keep
+          -map work/iso/casper/<SQUASHFS_NAME>   /casper/<SQUASHFS_NAME>
+          -map work/iso/casper/<base>.size       /casper/<base>.size
+          -map work/iso/casper/<base>.manifest   /casper/<base>.manifest
+          -map work/iso/casper/install-sources.yaml /casper/install-sources.yaml
+          -map work/iso/md5sum.txt               /md5sum.txt
+                                                          │
+                                                          ▼
+                                   work/mytical-26.04-amd64.iso + .sha256
 ```
 
-El gate `assert_implemented()` ya no bloquea el build: comprueba que existan
-las funciones y los `.conf` de Calamares antes de crear `work/`. El build real
-exige root y `--repo`.
+`<base>` es `minimal.standard` o `filesystem`, derivado del squashfs elegido
+(`$SQUASHFS_BASE`). El gate `assert_implemented()` ya no bloquea el build:
+comprueba que existan las funciones y los `.conf` de Calamares antes de crear
+`work/`. El build real exige root y `--repo`.
 
-### 3.1 `install_mytical_packages()`
+### 3.1 Layout de casper: `minimal.standard` vs `filesystem`
+
+La ISO oficial de Ubuntu 26.04 no publica `/casper/filesystem.squashfs`. Su
+layout es:
+
+| Archivo | Contenido |
+|---|---|
+| `/casper/minimal.standard.squashfs` | rootfs real (~4,9 GB) |
+| `/casper/minimal.standard.size` | tamaño del rootfs sin comprimir |
+| `/casper/minimal.standard.manifest` | paquetes del rootfs |
+| `/casper/install-sources.yaml` | fuentes que ofrece el instalador (`path: minimal.standard.squashfs`, `size: 4911607808`) |
+| `/casper/minimal.standard.<idioma>.*` | variantes de idioma y `enhanced` |
+
+Las ISO anteriores (24.04 y previas) usan `filesystem.squashfs`,
+`filesystem.size` y `filesystem.manifest`, sin `install-sources.yaml`.
+
+`remaster.sh` resuelve el layout una sola vez y guarda el nombre:
+
+- `SQUASHFS_CANDIDATES=(minimal.standard.squashfs filesystem.squashfs)`; se
+  prefiere `minimal.standard.squashfs` si existen los dos.
+- `resolve_squashfs_from_listing()` decide con el listado de
+  `xorriso -find /casper` (lo usa `--check`/`--dry-run`); si no hay ninguno de
+  los dos, el script aborta con un mensaje accionable.
+- `resolve_squashfs_from_tree()` decide sobre `work/iso/casper/` (lo usan
+  `unsquash_rootfs`, `update_casper_size`, `update_casper_metadata` y
+  `rebuild_iso`); respeta `SQUASHFS_NAME` si ya está fijado.
+- `SQUASHFS_NAME` guarda el archivo y `SQUASHFS_BASE` su prefijo
+  (`minimal.standard` o `filesystem`). Ninguna función vuelve a escribir
+  `filesystem.*` a mano.
+
+### 3.2 `install_mytical_packages()`
 
 - Monta `/proc`, `/sys`, `/dev` y `/dev/pts` en el rootfs y copia un
   `resolv.conf` temporal; todo se desmonta y se restaura con un `trap` aunque
@@ -94,7 +128,7 @@ exige root y `--repo`.
 - Después de instalar, comprueba que no entraron `ubuntu-session`, `gdm3`,
   `gnome-shell` ni `ubuntu-desktop*`, y que sí están `casper` y `calamares`.
 
-### 3.2 `apply_branding()`
+### 3.3 `apply_branding()`
 
 - Copia los wallpapers CC0 de `distro/branding/wallpapers/` a
   `/usr/share/backgrounds/mytical/` y `distro/branding/LICENSES.md` a
@@ -110,26 +144,39 @@ exige root y `--repo`.
 - No copia logos ni arte de Ubuntu. Si la ISO base trae el tema SDDM oficial
   de Ubuntu, lo retira del rootfs para no ofrecerlo en el greeter.
 
-### 3.3 `update_casper_metadata()`
+### 3.4 `update_casper_metadata()`
 
-- Mueve el squashfs recién comprimido dentro del árbol extraído para que
+- Mueve el squashfs recién comprimido (`work/rootfs.squashfs`) dentro del árbol
+  extraído sobre el archivo elegido (`casper/<SQUASHFS_NAME>`) para que
   `md5sum.txt` describa exactamente lo que montará el remux.
-- Recalcula `casper/filesystem.size` con `du -sx --block-size=1`.
-- Regenera `casper/filesystem.manifest` con `dpkg-query` si el chroot trae la
-  herramienta; si no, conserva el manifiesto base y avisa.
+- `update_casper_size()` recalcula `casper/<base>.size` con
+  `du -sx --block-size=1` (rootfs sin comprimir): `minimal.standard.size` en el
+  layout nuevo, `filesystem.size` en el viejo.
+- `update_install_sources()` actualiza `casper/install-sources.yaml` si existe.
+  Solo toca la entrada `id: standard`: reescribe su `path` a
+  `minimal.standard.squashfs` y su `size` con el tamaño **comprimido** del
+  squashfs (`stat -c %s`). Las variantes de idioma y `enhanced` conservan su
+  `path`/`size`. Si el archivo existe pero no contiene una única entrada
+  `standard`, el build aborta sin modificar el fichero. En el layout viejo,
+  sin `install-sources.yaml`, la función solo informa y no hace nada.
+- Regenera `casper/<base>.manifest` con `dpkg-query` si el chroot trae la
+  herramienta; si no, conserva el manifiesto base y avisa. Solo se regenera el
+  manifiesto del squashfs elegido, no los de las variantes de idioma.
 - Regenera `md5sum.txt` desde el árbol extraído, excluyéndose a sí mismo.
 - Deja un `TODO(iso)` explícito: `md5sum.txt` solo puede validarse contra la
   ISO final después de ejecutar el remux y montar la imagen.
 
-### 3.4 Calamares
+### 3.5 Calamares
 
 `calamares/settings.conf` y `calamares/modules/` incluyen, como mínimo,
 `partition`, `unpackfs`, `bootloader`, `users`, `locale`, `keyboard`,
 `displaymanager` y `finished`, más los módulos de soporte de la secuencia
 (`welcome`, `summary`, `mount`, `machineid`, `fstab`, `localecfg`,
-`networkcfg`, `hwclock`, `services`, `grubcfg`, `umount`). `unpackfs` toma
-`/cdrom/casper/filesystem.squashfs`; `bootloader` usa GRUB/shim; `services`
-habilita SDDM; `displaymanager` solo ofrece la sesión `mytical`.
+`networkcfg`, `hwclock`, `services`, `grubcfg`, `umount`). `unpackfs.conf`
+versiona `/cdrom/casper/minimal.standard.squashfs`; `stage_calamares()`
+reescribe ese `source` al nombre detectado, de modo que una ISO del layout
+viejo instale desde `filesystem.squashfs`. `bootloader` usa GRUB/shim;
+`services` habilita SDDM; `displaymanager` solo ofrece la sesión `mytical`.
 
 
 ## 4. Estado actual
@@ -138,12 +185,12 @@ habilita SDDM; `displaymanager` solo ofrece la sesión `mytical`.
 |---|---|
 | `distro/iso/README.md` | requisitos, ISO oficial, dependencias, flujo, tamaño y regla de `/nix` |
 | `distro/iso/Makefile` | `check`, `build`, `clean`, `test`; `build` exige `ISO=` |
-| `distro/iso/remaster.sh` | flags, validaciones, plan y pipeline completo (chroot, branding, metadatos) |
+| `distro/iso/remaster.sh` | flags, validaciones, plan y pipeline completo (detección de layout, chroot, branding, metadatos, remux) |
 | `distro/iso/package-lists/mytical.list` | base APT sin GNOME |
 | `distro/iso/calamares/settings.conf` | secuencia de Calamares coherente con los módulos |
 | `distro/iso/calamares/modules/` | `.conf` mínimos de partition, unpackfs, bootloader, users, locale, keyboard, displaymanager, finished y soporte |
 | `distro/iso/calamares/branding/mytical/branding.desc` | marca textual, sin imágenes |
-| `distro/iso/tests/test_iso_scaffold.sh` | tests locales sin ISO/root/red, con stubs de chroot y herramientas |
+| `distro/iso/tests/test_iso_scaffold.sh` | tests locales sin ISO/root/red, con stubs de chroot, herramientas y los dos layouts |
 
 Verificado localmente:
 
@@ -151,14 +198,28 @@ Verificado localmente:
   ejecuta `mksquashfs`, `xorriso` ni `chroot` reales.
 - `make build` sin ISO falla con un mensaje accionable y no crea `work/`.
 - `--dry-run` con una ISO falsa (archivo disperso) y `xorriso` simulado
-  imprime el plan y deja `work/` intacto.
+  imprime el plan, muestra el layout detectado y deja `work/` intacto.
+- La detección de layout se prueba con stubs de los dos casos:
+  `minimal.standard.squashfs` (26.04) y `filesystem.squashfs` (anterior),
+  incluido el caso con ambos archivos (gana `minimal.standard`) y un casper
+  sin ninguno (falla).
+- `unsquash_rootfs()` extrae el squashfs elegido en ambos layouts;
+  `unpackfs.conf` se copia al rootfs con el `source` correspondiente.
 - `install_mytical_packages()` falla claro sin `--repo`; con repo y clave
   simula `apt-get update`, instala con `--no-install-recommends`, no ejecuta
   autoremove y desmonta el chroot.
 - `apply_branding()` escribe `os-release`, copia wallpapers/licencias, instala
   SDDM y retira el tema de Ubuntu.
-- `update_casper_metadata()` recalcula `filesystem.size` y `md5sum.txt`;
-  `md5sum -c` pasa sobre el árbol extraído simulado.
+- `update_casper_metadata()` se prueba con los dos layouts:
+  `minimal.standard.size`/`.manifest`/`install-sources.yaml` y
+  `filesystem.size`/`.manifest`; `md5sum -c` pasa sobre el árbol extraído
+  simulado.
+- `update_install_sources()` actualiza solo la entrada `standard` y deja
+  intactas las variantes de idioma/`enhanced`; sin entrada `standard` aborta
+  sin tocar el fichero. El YAML sigue siendo válido (PyYAML) tras el cambio.
+- `rebuild_iso()` se prueba con un `xorriso` que registra sus `-map`: mapea
+  `/casper/<SQUASHFS_NAME>`, `<base>.size`, `<base>.manifest`,
+  `install-sources.yaml` y `md5sum.txt`.
 - La lista no contiene `/nix`, `ubuntu-session`, `gdm3` ni `gnome-shell`.
 
 **No verificado:** no se descargó la ISO, no se ejecutó root, no se construyó
@@ -177,14 +238,15 @@ contra una ISO real. Queda por validar en build/QEMU:
   (**sin autoremove**) y comprobación de que no entró GNOME/GDM. Implementado;
   los tests lo ejercitan con un `chroot` simulado, no con APT real.
 - `calamares/modules/`: `unpackfs.conf` (origen
-  `/cdrom/casper/filesystem.squashfs`), `partition.conf`, `bootloader.conf`,
-  `users.conf`, `displaymanager.conf`, `locale.conf`, `keyboard.conf`,
-  `finished.conf` y los módulos de soporte de la secuencia. Implementado; falta
-  que Calamares lo cargue de verdad.
-- `update_casper_metadata()`: `filesystem.manifest`, `filesystem.size` y
-  `md5sum.txt`; el remux ahora mapea también `md5sum.txt` y el manifiesto.
-  Implementado; la validación final de `md5sum.txt` sigue marcada como
-  `TODO(iso)` hasta montar la ISO resultante.
+  `/cdrom/casper/minimal.standard.squashfs`, reescrito por `stage_calamares()`
+  al nombre detectado), `partition.conf`, `bootloader.conf`, `users.conf`,
+  `displaymanager.conf`, `locale.conf`, `keyboard.conf`, `finished.conf` y los
+  módulos de soporte de la secuencia. Implementado; falta que Calamares lo
+  cargue de verdad.
+- `update_casper_metadata()`: `<base>.manifest`, `<base>.size`,
+  `install-sources.yaml` (entrada `standard`) y `md5sum.txt`; el remux mapea
+  también esos metadatos. Implementado; la validación final de `md5sum.txt`
+  sigue marcada como `TODO(iso)` hasta montar la ISO resultante.
 - Lanzador de Calamares en el live (`.desktop` + autostart) y usuario live:
   **pendiente**, fuera de esta entrega.
 
@@ -221,10 +283,14 @@ declarar `images:`/`slideshow:` sin archivos inexistentes.
 
 ### B4 — Tamaño
 
-Presupuesto: **≤ 8 GiB** de ISO final. La oficial ronda 6 GiB y el rootfs
-crece con Calamares, Hyprland, Waybar, kitty y fuentes. El cierre Nix no se
-suma porque no entra. Si se supera el presupuesto, medir con
-`du -xhd1 work/rootfs` y `unsquashfs -ll` antes de recortar a ciegas.
+Presupuesto: **≤ 8 GiB** de ISO final. La oficial ronda 6 GiB y su
+`minimal.standard.squashfs` ya pesa ~4,9 GB; el rootfs crece con Calamares,
+Hyprland, Waybar, kitty y fuentes. El cierre Nix no se suma porque no entra.
+Si se supera el presupuesto, medir con `du -xhd1 work/rootfs` y
+`unsquashfs -ll` antes de recortar a ciegas. Como el layout nuevo conserva las
+variantes de idioma/`enhanced` de la ISO base, el remux no libera su espacio:
+el presupuesto se calcula sobre la ISO original sustituyendo solo el squashfs
+elegido.
 
 **Cierre:** ISO final ≤ 8 GiB y arranque/instalación comprobados con ese
 tamaño.
@@ -286,6 +352,8 @@ para V1.1, pero sí para llamar “reproducible” a la ISO en sentido estricto.
 | AC12 | README/ISO.md describen el comando exacto y las limitaciones | **cumple** |
 | AC13 | Los tests cubren `install_mytical_packages`, `apply_branding`, `update_casper_metadata` y `--dry-run` no toca `work/` | **cumple** |
 | AC14 | El build no ejecuta autoremove y el repo local usa `Signed-By` | **cumple en código/tests**; pendiente de APT real |
+| AC15 | El pipeline detecta `minimal.standard.squashfs` (26.04) y `filesystem.squashfs` (anterior), y extrae/remuxa el elegido | **cumple en tests**; pendiente de ISO real |
+| AC16 | `install-sources.yaml` actualiza solo la entrada `standard` (path y size comprimido) sin tocar idioma/`enhanced` | **cumple en tests**; pendiente de ISO real |
 
 
 ## 7. Riesgos
@@ -294,6 +362,9 @@ para V1.1, pero sí para llamar “reproducible” a la ISO en sentido estricto.
 |---|---|---|
 | APT arrastra recommends de GNOME | ISO más grande y sesiones duplicadas | `--no-install-recommends`, `AutomaticRemove=false`, lista explícita y test que falla si aparece GNOME |
 | `xorriso -map` deja `md5sum.txt` obsoleto | “Check disc” falla; no afecta al arranque normal | regenerar `md5sum.txt` antes del remux y mapearlo en `rebuild_iso` |
+| `install-sources.yaml` desincronizado | el instalador elige un `path` inexistente o un `size` que no corresponde y la instalación falla o se queda sin barra de progreso | `update_install_sources()` reescribe solo la entrada `standard` con el squashfs detectado y su tamaño comprimido; si no la encuentra, el build aborta. El esquema real de la ISO 26.04 no se validó todavía |
+| Se tocan variantes de idioma/`enhanced` | el instalador ofrece imágenes que ya no coinciden con la ISO | el parser solo edita el bloque con `id: standard` exacto; tests comprueban que las demás entradas conservan `path`/`size` |
+| Layout de casper distinto del esperado | el build extrae el squashfs equivocado o falla tarde | detección temprana con `resolve_squashfs_from_listing()` en `--check`/`--dry-run`; aborta si no hay ningún candidato |
 | Calamares sin `.conf` de módulos | instalador aborta a mitad | `.conf` mínimos versionados; falta probar Calamares en QEMU |
 | Repo local sin clave pública | APT no puede validar `Signed-By` y el build aborta | falla clara de `repo_key()`; la clave viaja junto al repo o en `distro/apt/` |
 | Montajes del chroot quedan abiertos si APT falla | `work/` a medio montar | `trap cleanup_chroot` desmonta `/proc`, `/sys`, `/dev`, `/dev/pts` y restaura `resolv.conf` |
@@ -306,7 +377,8 @@ para V1.1, pero sí para llamar “reproducible” a la ISO en sentido estricto.
 ## 8. Próximos pasos
 
 1. Ejecutar `make -C distro/iso check ISO=<oficial>` y un build real con
-   `REPO=<repo firmado>`; corregir lo que falle en APT/Calamares.
+   `REPO=<repo firmado>`; corregir lo que falle en APT/Calamares y revisar el
+   diff de `casper/install-sources.yaml` contra la ISO original.
 2. Añadir el lanzador de Calamares en el live (`.desktop` + autostart) y el
    usuario live; hoy el pipeline instala Calamares pero no lo abre solo.
 3. Construir una ISO de prueba y arrancarla en QEMU UEFI/BIOS.
@@ -323,6 +395,22 @@ para V1.1, pero sí para llamar “reproducible” a la ISO en sentido estricto.
 - `update_casper_metadata()` valida `md5sum.txt` contra el árbol extraído, no
   contra la ISO final. La comprobación contra la imagen montada sigue como
   `TODO(iso)`.
+- El parser de `install-sources.yaml` es una heurística sobre el texto: separa
+  entradas por la indentación mínima de la lista, elige el bloque con
+  `id: standard` y reescribe su `path`/`size` conservando el resto de líneas y
+  comentarios. No es un parser YAML completo: no soporta mapas en flujo
+  (`- {path: ..., size: ...}`) ni entradas sin `id` y sin `path` reconocible.
+  El esquema real de la ISO 26.04 no se comprobó; el primer build real debe
+  revisar el diff de ese archivo antes de publicar.
+- `size` en `install-sources.yaml` se interpreta como el tamaño del squashfs
+  comprimido (`stat`), mientras que `<base>.size` es el rootfs sin comprimir
+  (`du`). El número del enunciado (`4911607808`, ~4,9 GB) encaja con el
+  squashfs; aun así no se contrastó contra la ISO real.
+- El remux conserva las variantes de idioma/`enhanced` de la ISO base sin
+  recomprimirlas ni actualizar sus manifiestos: solo se regenera el manifiesto
+  y el squashfs del layout elegido.
+- `stage_calamares()` reescribe el `source` de `unpackfs.conf` con `sed`; no se
+  validó que Calamares 26.04 acepte el resto de la configuración.
 - Los `.conf` de Calamares son mínimos y parsean como YAML; no se cargaron con
   `calamares -d` ni se probó una instalación.
 - `apply_branding()` no instala el tema Plymouth de Mytical ni un logo de
@@ -330,8 +418,9 @@ para V1.1, pero sí para llamar “reproducible” a la ISO en sentido estricto.
   wallpapers CC0 y el tema SDDM existente.
 - No se cambiaron versiones, el repo APT ni `mksquashfs`; el remux conserva
   shim/GRUB/kernel firmados de Ubuntu y queda pendiente de probar Secure Boot.
-- El `README.md` de `distro/iso/` conserva la descripción del esqueleto; este
-  documento es la referencia del estado implementado.
+- El `README.md` de `distro/iso/` conserva la descripción del esqueleto y aún
+  nombra `filesystem.squashfs`/`filesystem.size`; este documento es la
+  referencia del estado implementado y del layout nuevo.
 
 
 ## 9. Referencias

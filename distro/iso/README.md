@@ -64,7 +64,7 @@ archive de Ubuntu 26.04 no los trae.
 |---|---|---|
 | `squashfs-tools` | host | comprimir/descomprimir el rootfs |
 | `xorriso` | host | extraer la ISO y reemplazar el squashfs |
-| `casper` | rootfs de la ISO | arranque live, usuario live, `filesystem.squashfs` |
+| `casper` | rootfs de la ISO | arranque live, usuario live, `minimal.standard.squashfs` |
 | `calamares` | rootfs de la ISO | instalador gráfico |
 
 `make check` comprueba las dos primeras en el host y que la ISO traiga
@@ -100,7 +100,7 @@ Pipeline previsto:
 
 1. validar ISO, `/casper`, herramientas y repo;
 2. extraer la ISO con `xorriso -osirrox` en `work/iso/`;
-3. extraer `casper/filesystem.squashfs` en `work/rootfs/`;
+3. extraer `casper/minimal.standard.squashfs` en `work/rootfs/`;
 4. copiar el repo local a `/opt/mytical/apt` del rootfs;
 5. **chroot APT**: instalar `package-lists/mytical.list` con
    `--no-install-recommends` y verificar que no entra GNOME;
@@ -110,7 +110,7 @@ Pipeline previsto:
 8. verificar que **no existe `/nix`**;
 9. recomprimir con `mksquashfs -comp xz`;
 10. remontar la ISO con `xorriso -boot_image any keep`, reemplazando solo
-    `/casper/filesystem.squashfs` y `/casper/filesystem.size`;
+    `/casper/minimal.standard.squashfs` y `/casper/minimal.standard.size`;
 11. escribir `mytical-26.04-amd64.iso.sha256`.
 
 La ISO de salida por defecto es `distro/iso/work/mytical-26.04-amd64.iso`;
@@ -141,7 +141,7 @@ distro/iso/
 |---|---|
 | ISO oficial de entrada | ~6 GiB |
 | `work/` durante el build | 20–30 GiB |
-| `filesystem.squashfs` final | 4,5–6 GiB |
+| `minimal.standard.squashfs` final | 4,5–6 GiB |
 | ISO final | 6–8 GiB |
 | Presupuesto de aceptación | **≤ 8 GiB** |
 
@@ -171,7 +171,7 @@ en el rootfs antes de empaquetar.
 ## Secure Boot
 
 El remux reutiliza **tal cual** el shim, GRUB, el kernel y el initramfs de
-Ubuntu: solo se sustituyen el squashfs y `filesystem.size`. No se re-firman
+Ubuntu: solo se sustituyen el squashfs y `minimal.standard.size`. No se re-firman
 binarios EFI ni se toca la cadena de arranque.
 
 - Probar UEFI **y** BIOS en QEMU antes de publicar.
@@ -207,3 +207,8 @@ a `work/` y la documentación. Si hay `shellcheck`, lo ejecutan.
 - [`docs/superpowers/plans/2026-11-12-mytical-distro-v1.md`](../../docs/superpowers/plans/2026-11-12-mytical-distro-v1.md) — Task 9/10.
 - [`docs/adr/0001-overlay-first.md`](../../docs/adr/0001-overlay-first.md), [`0002`](../../docs/adr/0002-apt-owned-desktop.md), [`0006`](../../docs/adr/0006-single-session.md).
 - [`docs/distro/ASSET-LICENSES.md`](../../docs/distro/ASSET-LICENSES.md) — bloqueo legal de assets.
+
+
+> **Ubuntu 26.04:** la ISO oficial usa `minimal.standard.squashfs`,
+> `minimal.standard.size`, `minimal.standard.manifest` e `install-sources.yaml`.
+> El pipeline detecta también el layout antiguo `filesystem.squashfs`.
